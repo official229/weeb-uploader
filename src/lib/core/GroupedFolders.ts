@@ -84,7 +84,7 @@ export function groupFilesByFolders(files: File[]): SelectedFolder {
 	
 	for (const [path, folder] of folderMap.entries()) {
 		if (path.split('/').length === 1) {
-			rootFolders.push(folder);
+			  rootFolders.push(folder);
 		}
 	}
 

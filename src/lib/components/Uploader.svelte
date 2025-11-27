@@ -2,6 +2,11 @@
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
 	import ApiAuthSetup from './ApiAuthSetup.svelte';
 	import FolderList from './FolderList.svelte';
+	import SeriesSetter from './SeriesSetter.svelte';
+	import { GlobalState, globalStateContext } from '$lib/core/GlobalState.svelte';
+	import { getContext } from 'svelte';
+
+	const globalState = getContext(globalStateContext) as GlobalState;
 
 	interface GroupedData {
 		name: string;
@@ -15,9 +20,6 @@
 
 	let { groups: initialGroups }: Props = $props();
 
-	// API validation state
-	let validated = $state(false);
-
 	// Create a mutable copy of groups
 	let groups = $state<GroupedData[]>([...initialGroups]);
 
@@ -28,12 +30,12 @@
 
 	function removeFolder(groupName: string, event: Event) {
 		event.stopPropagation();
-		groups = groups.filter(g => g.name !== groupName);
+		groups = groups.filter((g) => g.name !== groupName);
 	}
 
 	function removeFile(groupName: string, fileIndex: number, event: Event) {
 		event.stopPropagation();
-		const groupIndex = groups.findIndex(g => g.name === groupName);
+		const groupIndex = groups.findIndex((g) => g.name === groupName);
 		if (groupIndex !== -1) {
 			const newGroups = [...groups];
 			newGroups[groupIndex] = {
@@ -51,12 +53,11 @@
 </script>
 
 <div class="space-y-6">
-	<ApiAuthSetup bind:validated />
+	<ApiAuthSetup />
 
-	<FolderList 
-		groups={groups} 
-		onRemoveFolder={removeFolder}
-		onRemoveFile={removeFile}
-	/>
+	{#if globalState.apiToken}
+		<SeriesSetter />
+	{/if}
+
+	<FolderList {groups} onRemoveFolder={removeFolder} onRemoveFile={removeFile} />
 </div>
-

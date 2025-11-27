@@ -4,5 +4,11 @@
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "always",
 		"source.fixAll.prettier": "always"
+	},
+	"[svelte]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
 	}
 }
