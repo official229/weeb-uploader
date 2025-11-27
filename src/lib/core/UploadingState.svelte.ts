@@ -1,3 +1,5 @@
+import axios, { type AxiosProgressEvent } from 'axios';
+
 export class ChapterUploadingGroup {
 	public groupIds = $state<string[] | null>(null);
 }
@@ -40,6 +42,65 @@ export class ChapterPageState {
 		this.error = error;
 		this.associatedUploadSessionFileId = associatedUploadSessionFileId;
 	}
+
+	public async uploadToSession(sessionId: string, authToken: string): Promise<void> {
+		// Set status to uploading before starting
+		this.status = ChapterPageStatus.UPLOADING;
+		this.progress = 0;
+		this.error = null;
+
+		const formData = new FormData();
+		formData.append('file', this.pageFile);
+
+		const onUploadProgress = (progressEvent: AxiosProgressEvent) => {
+			this.progress = Number(progressEvent.progress?.toFixed(2) ?? 0);
+		};
+
+		try {
+			const response = await axios.post(`https://api.weebdex.org/upload/${sessionId}`, formData, {
+				headers: {
+					Authorization: `Bearer ${authToken}`
+					// Note: Don't set Content-Type for FormData - let axios set it with boundary
+				},
+				onUploadProgress: onUploadProgress
+			});
+
+			if (response.status !== 200) {
+				this.status = ChapterPageStatus.FAILED;
+				this.error = `Failed to upload file to session: ${response.statusText}`;
+				this.progress = 0;
+				return;
+			}
+
+			const data = response.data;
+
+			if (!data.id || typeof data.id !== 'string') {
+				this.status = ChapterPageStatus.FAILED;
+				this.error = `Failed to get upload session file ID: Invalid response format`;
+				this.progress = 0;
+				return;
+			}
+
+			this.associatedUploadSessionFileId = data.id;
+			this.status = ChapterPageStatus.UPLOADED;
+			this.progress = 1;
+			this.error = null;
+		} catch (error) {
+			this.status = ChapterPageStatus.FAILED;
+			this.progress = 0;
+
+			if (axios.isAxiosError(error)) {
+				this.error =
+					error.response?.data?.message ||
+					error.message ||
+					`Network error: ${error.response?.statusText || 'Unknown error'}`;
+			} else if (error instanceof Error) {
+				this.error = error.message;
+			} else {
+				this.error = 'Unknown error occurred during upload';
+			}
+		}
+	}
 }
 
 export enum ChapterStatus {
@@ -61,6 +122,7 @@ export class ChapterState {
 	public pages = $state<ChapterPageState[]>([]);
 	public status = $state<ChapterStatus>(ChapterStatus.NOT_STARTED);
 	public progress = $state<number>(0); // 0 - 1 normalized progress
+	public error = $state<string | null>(null);
 
 	public associatedUploadSessionId = $state<string | null>(null);
 
@@ -74,6 +136,7 @@ export class ChapterState {
 		pages: ChapterPageState[],
 		status: ChapterStatus = ChapterStatus.NOT_STARTED,
 		progress: number = 0,
+		error: string | null = null,
 		associatedUploadSessionId: string | null = null
 	) {
 		this.originalFolderName = originalFolderName;
@@ -85,6 +148,7 @@ export class ChapterState {
 		this.pages = pages;
 		this.status = status;
 		this.progress = progress;
+		this.error = error;
 		this.associatedUploadSessionId = associatedUploadSessionId;
 	}
 
@@ -96,5 +160,153 @@ export class ChapterState {
 		}
 		const progressTotal = this.pages.reduce((acc, page) => acc + page.progress, 0);
 		this.progress = progressTotal / totalPages;
+	}
+
+	public async upload(token: string): Promise<void> {
+		this.status = ChapterStatus.IN_PROGRESS;
+		this.progress = 0;
+		this.error = null;
+
+		if (!this.associatedGroup || !this.associatedSeries) {
+			this.status = ChapterStatus.FAILED;
+			this.error = 'No associated group or series';
+			this.progress = 0;
+			return;
+		}
+
+		if (this.pages.length === 0) {
+			this.status = ChapterStatus.FAILED;
+			this.error = 'No pages to upload';
+			this.progress = 0;
+			return;
+		}
+
+		const groupIds = this.associatedGroup.groupIds ?? [];
+
+		const sessionRequest = {
+			groups: groupIds,
+			manga: this.associatedSeries.seriesId
+		};
+
+		try {
+			// first we create the upload session
+			const response = await axios.post(`https://api.weebdex.org/upload/begin`, sessionRequest, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+
+			if (response.status !== 200) {
+				this.status = ChapterStatus.FAILED;
+				this.error = `Failed to create upload session: ${response.statusText}`;
+				this.progress = 0;
+				return;
+			}
+
+			const data = response.data;
+			const uploadSessionId = data.id;
+
+			if (!uploadSessionId || typeof uploadSessionId !== 'string') {
+				this.status = ChapterStatus.FAILED;
+				this.error = `Failed to get upload session ID: Invalid response format`;
+				this.progress = 0;
+				return;
+			}
+
+			this.associatedUploadSessionId = uploadSessionId;
+			this.checkProgress(); // Update progress after session creation
+
+			// now we upload the pages in batches of 3
+			for (let i = 0; i < this.pages.length; i += 3) {
+				const batch = this.pages.slice(i, i + 3);
+				await Promise.all(batch.map((page) => page.uploadToSession(uploadSessionId, token)));
+
+				// validate none of the uploads failed
+				const failedPages = batch.filter((page) => page.status === ChapterPageStatus.FAILED);
+				if (failedPages.length > 0) {
+					this.status = ChapterStatus.FAILED;
+					const errorMessages = failedPages
+						.map((page) => page.error)
+						.filter((msg): msg is string => msg !== null)
+						.join('; ');
+					this.error = `Failed to upload some pages: ${errorMessages}`;
+					this.progress = 0;
+					await this.cleanupFailedUpload(token);
+					return;
+				}
+
+				this.checkProgress();
+			}
+
+			// Gather upload IDs, preserving page order
+			const gatheredUploads: string[] = this.pages
+				.map((page) => page.associatedUploadSessionFileId)
+				.filter((id): id is string => id !== null);
+
+			if (gatheredUploads.length !== this.pages.length) {
+				this.status = ChapterStatus.FAILED;
+				this.error = `Failed to upload some pages: ${this.pages.length - gatheredUploads.length} page(s) missing upload IDs`;
+				this.progress = 0;
+				await this.cleanupFailedUpload(token);
+				return;
+			}
+
+			const finalizedUploadRequest = {
+				draft: {
+					chapter: this.chapterNumber,
+					volume: this.chapterVolume,
+					title: this.chapterTitle,
+					language: 'en' // TODO: make this configurable
+				},
+				page_order: gatheredUploads
+			};
+
+			const finalizeResponse = await axios.post(
+				`https://api.weebdex.org/upload/${this.associatedUploadSessionId}/commit`,
+				finalizedUploadRequest,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`
+					}
+				}
+			);
+
+			if (finalizeResponse.status !== 200) {
+				this.status = ChapterStatus.FAILED;
+				this.error = `Failed to finalize upload: ${finalizeResponse.statusText}`;
+				this.progress = 0;
+				await this.cleanupFailedUpload(token);
+				return;
+			}
+
+			this.status = ChapterStatus.COMPLETED;
+			this.progress = 1;
+			this.error = null;
+		} catch (error) {
+			this.status = ChapterStatus.FAILED;
+			this.progress = 0;
+
+			if (axios.isAxiosError(error)) {
+				this.error =
+					error.response?.data?.message ||
+					error.message ||
+					`Network error: ${error.response?.statusText || 'Unknown error'}`;
+			} else if (error instanceof Error) {
+				this.error = error.message;
+			} else {
+				this.error = 'Unknown error occurred during upload';
+			}
+
+			await this.cleanupFailedUpload(token);
+		}
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public async cleanupFailedUpload(_token: string): Promise<void> {
+		if (!this.associatedUploadSessionId) {
+			return;
+		}
+
+		console.log('pretend clean up');
 	}
 }
