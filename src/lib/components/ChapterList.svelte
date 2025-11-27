@@ -366,199 +366,204 @@
 	</div>
 
 	<!-- Chapters List -->
-	<div class="space-y-4">
-		{#each chapters as chapter, chapterIndex}
-			{@const chapterKey = getChapterKey(chapter)}
-			{@const isExpanded = expandedChapters.has(chapterKey)}
-			{@const isManuallyEdited = manuallyEditedChapters.has(chapterKey)}
-			{@const isEditingTitle = editingChapter === chapterKey && editingField === 'title'}
-			{@const isEditingVolume = editingChapter === chapterKey && editingField === 'volume'}
-			{@const isEditingNumber = editingChapter === chapterKey && editingField === 'number'}
+	<div
+		class="max-h-[600px] overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-4"
+	>
+		<div class="space-y-4">
+			{#each chapters as chapter, chapterIndex}
+				{@const chapterKey = getChapterKey(chapter)}
+				{@const isExpanded = expandedChapters.has(chapterKey)}
+				{@const isManuallyEdited = manuallyEditedChapters.has(chapterKey)}
+				{@const isEditingTitle = editingChapter === chapterKey && editingField === 'title'}
+				{@const isEditingVolume = editingChapter === chapterKey && editingField === 'volume'}
+				{@const isEditingNumber = editingChapter === chapterKey && editingField === 'number'}
 
-			<div class="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-				<!-- Chapter Header -->
-				<div
-					class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-					onclick={() => toggleChapter(chapterIndex)}
-					role="button"
-					tabindex="0"
-					onkeydown={(e) => {
-						if (e.key === 'Enter' || e.key === ' ') {
-							e.preventDefault();
-							toggleChapter(chapterIndex);
-						}
-					}}
-				>
-					<button
-						type="button"
-						onclick={(e) => toggleChapter(chapterIndex)}
-						class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+				<div class="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+					<!-- Chapter Header -->
+					<div
+						class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+						onclick={() => toggleChapter(chapterIndex)}
+						role="button"
+						tabindex="0"
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								toggleChapter(chapterIndex);
+							}
+						}}
 					>
-						{#if isExpanded}
-							<span class="i-mdi-chevron-down text-xl"></span>
-						{:else}
-							<span class="i-mdi-chevron-right text-xl"></span>
-						{/if}
-					</button>
-
-					<span class="i-mdi-folder text-blue-500 dark:text-blue-400 text-xl"></span>
-
-					<div class="flex-1 min-w-0">
-						<div class="flex items-center gap-2 flex-wrap">
-							<!-- Title -->
-							<div class="flex items-center gap-1">
-								<span class="text-sm text-gray-500 dark:text-gray-400">Title:</span>
-								{#if isEditingTitle}
-									<input
-										type="text"
-										value={chapter.chapterTitle ?? ''}
-										onblur={(e) => updateChapterField(chapterIndex, 'title', e.currentTarget.value)}
-										onkeydown={(e) => {
-											if (e.key === 'Enter') {
-												e.currentTarget.blur();
-											} else if (e.key === 'Escape') {
-												cancelEditing();
-												e.currentTarget.blur();
-											}
-										}}
-										use:autofocus
-										class="px-2 py-1 border border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-									/>
-								{:else}
-									<span
-										class="font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-										onclick={(e) => {
-											e.stopPropagation();
-											startEditing(chapterIndex, 'title');
-										}}
-									>
-										{chapter.chapterTitle ?? 'Untitled'}
-									</span>
-								{/if}
-							</div>
-
-							<!-- Volume -->
-							<div class="flex items-center gap-1">
-								<span class="text-sm text-gray-500 dark:text-gray-400">Vol:</span>
-								{#if isEditingVolume}
-									<input
-										type="number"
-										value={chapter.chapterVolume ?? ''}
-										onblur={(e) =>
-											updateChapterField(chapterIndex, 'volume', e.currentTarget.value)}
-										onkeydown={(e) => {
-											if (e.key === 'Enter') {
-												e.currentTarget.blur();
-											} else if (e.key === 'Escape') {
-												cancelEditing();
-												e.currentTarget.blur();
-											}
-										}}
-										use:autofocus
-										class="px-2 py-1 border border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-20"
-									/>
-								{:else}
-									<span
-										class="text-gray-700 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-										onclick={(e) => {
-											e.stopPropagation();
-											startEditing(chapterIndex, 'volume');
-										}}
-									>
-										{chapter.chapterVolume ?? '—'}
-									</span>
-								{/if}
-							</div>
-
-							<!-- Number -->
-							<div class="flex items-center gap-1">
-								<span class="text-sm text-gray-500 dark:text-gray-400">Ch:</span>
-								{#if isEditingNumber}
-									<input
-										type="number"
-										value={chapter.chapterNumber ?? ''}
-										onblur={(e) =>
-											updateChapterField(chapterIndex, 'number', e.currentTarget.value)}
-										onkeydown={(e) => {
-											if (e.key === 'Enter') {
-												e.currentTarget.blur();
-											} else if (e.key === 'Escape') {
-												cancelEditing();
-												e.currentTarget.blur();
-											}
-										}}
-										use:autofocus
-										class="px-2 py-1 border border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-20"
-									/>
-								{:else}
-									<span
-										class="text-gray-700 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-										onclick={(e) => {
-											e.stopPropagation();
-											startEditing(chapterIndex, 'number');
-										}}
-									>
-										{chapter.chapterNumber ?? '—'}
-									</span>
-								{/if}
-							</div>
-
-							{#if isManuallyEdited}
-								<span
-									class="text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded"
-								>
-									Manually Edited
-								</span>
+						<button
+							type="button"
+							onclick={(e) => toggleChapter(chapterIndex)}
+							class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+						>
+							{#if isExpanded}
+								<span class="i-mdi-chevron-down text-xl"></span>
+							{:else}
+								<span class="i-mdi-chevron-right text-xl"></span>
 							{/if}
-						</div>
-						<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-							Original: {getFolderName(chapter)} • {chapter.pages.length} page{chapter.pages
-								.length !== 1
-								? 's'
-								: ''}
-						</div>
-					</div>
+						</button>
 
-					{#if isManuallyEdited}
+						<span class="i-mdi-folder text-blue-500 dark:text-blue-400 text-xl"></span>
+
+						<div class="flex-1 min-w-0">
+							<div class="flex items-center gap-2 flex-wrap">
+								<!-- Title -->
+								<div class="flex items-center gap-1">
+									<span class="text-sm text-gray-500 dark:text-gray-400">Title:</span>
+									{#if isEditingTitle}
+										<input
+											type="text"
+											value={chapter.chapterTitle ?? ''}
+											onblur={(e) =>
+												updateChapterField(chapterIndex, 'title', e.currentTarget.value)}
+											onkeydown={(e) => {
+												if (e.key === 'Enter') {
+													e.currentTarget.blur();
+												} else if (e.key === 'Escape') {
+													cancelEditing();
+													e.currentTarget.blur();
+												}
+											}}
+											use:autofocus
+											class="px-2 py-1 border border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+										/>
+									{:else}
+										<span
+											class="font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+											onclick={(e) => {
+												e.stopPropagation();
+												startEditing(chapterIndex, 'title');
+											}}
+										>
+											{chapter.chapterTitle ?? 'Untitled'}
+										</span>
+									{/if}
+								</div>
+
+								<!-- Volume -->
+								<div class="flex items-center gap-1">
+									<span class="text-sm text-gray-500 dark:text-gray-400">Vol:</span>
+									{#if isEditingVolume}
+										<input
+											type="number"
+											value={chapter.chapterVolume ?? ''}
+											onblur={(e) =>
+												updateChapterField(chapterIndex, 'volume', e.currentTarget.value)}
+											onkeydown={(e) => {
+												if (e.key === 'Enter') {
+													e.currentTarget.blur();
+												} else if (e.key === 'Escape') {
+													cancelEditing();
+													e.currentTarget.blur();
+												}
+											}}
+											use:autofocus
+											class="px-2 py-1 border border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-20"
+										/>
+									{:else}
+										<span
+											class="text-gray-700 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+											onclick={(e) => {
+												e.stopPropagation();
+												startEditing(chapterIndex, 'volume');
+											}}
+										>
+											{chapter.chapterVolume ?? '—'}
+										</span>
+									{/if}
+								</div>
+
+								<!-- Number -->
+								<div class="flex items-center gap-1">
+									<span class="text-sm text-gray-500 dark:text-gray-400">Ch:</span>
+									{#if isEditingNumber}
+										<input
+											type="number"
+											value={chapter.chapterNumber ?? ''}
+											onblur={(e) =>
+												updateChapterField(chapterIndex, 'number', e.currentTarget.value)}
+											onkeydown={(e) => {
+												if (e.key === 'Enter') {
+													e.currentTarget.blur();
+												} else if (e.key === 'Escape') {
+													cancelEditing();
+													e.currentTarget.blur();
+												}
+											}}
+											use:autofocus
+											class="px-2 py-1 border border-blue-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-20"
+										/>
+									{:else}
+										<span
+											class="text-gray-700 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+											onclick={(e) => {
+												e.stopPropagation();
+												startEditing(chapterIndex, 'number');
+											}}
+										>
+											{chapter.chapterNumber ?? '—'}
+										</span>
+									{/if}
+								</div>
+
+								{#if isManuallyEdited}
+									<span
+										class="text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded"
+									>
+										Manually Edited
+									</span>
+								{/if}
+							</div>
+							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+								Original: {getFolderName(chapter)} • {chapter.pages.length} page{chapter.pages
+									.length !== 1
+									? 's'
+									: ''}
+							</div>
+						</div>
+
+						{#if isManuallyEdited}
+							<button
+								type="button"
+								onclick={(e) => {
+									e.stopPropagation();
+									revertChapter(chapterIndex);
+								}}
+								class="flex-shrink-0 px-3 py-1.5 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors flex items-center gap-1.5"
+								title="Revert to default"
+							>
+								<span class="i-mdi-undo text-base"></span>
+								<span>Revert</span>
+							</button>
+						{/if}
+
 						<button
 							type="button"
 							onclick={(e) => {
 								e.stopPropagation();
-								revertChapter(chapterIndex);
+								globalState.chapterStates = chapters.filter((_, i) => i !== chapterIndex);
 							}}
-							class="flex-shrink-0 px-3 py-1.5 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors flex items-center gap-1.5"
-							title="Revert to default"
+							class="flex-shrink-0 px-3 py-1.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors flex items-center gap-1.5"
+							title="Remove chapter"
 						>
-							<span class="i-mdi-undo text-base"></span>
-							<span>Revert</span>
+							<span class="i-mdi-delete text-base"></span>
+							<span>Remove</span>
 						</button>
+					</div>
+
+					<!-- Expanded Content with Image Previews -->
+					{#if isExpanded}
+						<ImagePreviewGrid
+							files={chapter.pages.map((page) => ({
+								file: new SelectedFile(page.pageFile, page.pageFile.name),
+								folder: {} as SelectedFolder
+							}))}
+							onRemove={(fileIndex, event) => handleRemovePage(chapterIndex, fileIndex, event)}
+						/>
 					{/if}
-
-					<button
-						type="button"
-						onclick={(e) => {
-							e.stopPropagation();
-							globalState.chapterStates = chapters.filter((_, i) => i !== chapterIndex);
-						}}
-						class="flex-shrink-0 px-3 py-1.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors flex items-center gap-1.5"
-						title="Remove chapter"
-					>
-						<span class="i-mdi-delete text-base"></span>
-						<span>Remove</span>
-					</button>
 				</div>
-
-				<!-- Expanded Content with Image Previews -->
-				{#if isExpanded}
-					<ImagePreviewGrid
-						files={chapter.pages.map((page) => ({
-							file: new SelectedFile(page.pageFile, page.pageFile.name),
-							folder: {} as SelectedFolder
-						}))}
-						onRemove={(fileIndex, event) => handleRemovePage(chapterIndex, fileIndex, event)}
-					/>
-				{/if}
-			</div>
-		{/each}
+			{/each}
+		</div>
 	</div>
 </div>

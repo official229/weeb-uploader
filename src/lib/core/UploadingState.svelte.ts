@@ -1,4 +1,5 @@
 import axios, { type AxiosProgressEvent } from 'axios';
+import { sleep } from './Utils';
 
 export class ChapterUploadingGroup {
 	public groupIds = $state<string[] | null>(null);
@@ -59,29 +60,34 @@ export class ChapterPageState {
 		try {
 			const response = await axios.post(`https://api.weebdex.org/upload/${sessionId}`, formData, {
 				headers: {
-					Authorization: `Bearer ${authToken}`
+					Authorization: `Bearer ${authToken}`,
+					Origin: 'https://weebdex.org',
+					Referer: 'https://weebdex.org'
 					// Note: Don't set Content-Type for FormData - let axios set it with boundary
 				},
 				onUploadProgress: onUploadProgress
 			});
 
-			if (response.status !== 200) {
-				this.status = ChapterPageStatus.FAILED;
-				this.error = `Failed to upload file to session: ${response.statusText}`;
-				this.progress = 0;
-				return;
-			}
-
 			const data = response.data;
 
-			if (!data.id || typeof data.id !== 'string') {
+			// API returns an array of responses, we only expect 1
+			if (!Array.isArray(data) || data.length === 0) {
 				this.status = ChapterPageStatus.FAILED;
 				this.error = `Failed to get upload session file ID: Invalid response format`;
 				this.progress = 0;
 				return;
 			}
 
-			this.associatedUploadSessionFileId = data.id;
+			const firstResponse = data[0];
+
+			if (!firstResponse.id || typeof firstResponse.id !== 'string') {
+				this.status = ChapterPageStatus.FAILED;
+				this.error = `Failed to get upload session file ID: Invalid response format`;
+				this.progress = 0;
+				return;
+			}
+
+			this.associatedUploadSessionFileId = firstResponse.id;
 			this.status = ChapterPageStatus.UPLOADED;
 			this.progress = 1;
 			this.error = null;
@@ -192,16 +198,11 @@ export class ChapterState {
 			// first we create the upload session
 			const response = await axios.post(`https://api.weebdex.org/upload/begin`, sessionRequest, {
 				headers: {
-					Authorization: `Bearer ${token}`
+					Authorization: `Bearer ${token}`,
+					Origin: 'https://weebdex.org',
+					Referer: 'https://weebdex.org'
 				}
 			});
-
-			if (response.status !== 200) {
-				this.status = ChapterStatus.FAILED;
-				this.error = `Failed to create upload session: ${response.statusText}`;
-				this.progress = 0;
-				return;
-			}
 
 			const data = response.data;
 			const uploadSessionId = data.id;
@@ -217,6 +218,10 @@ export class ChapterState {
 			this.checkProgress(); // Update progress after session creation
 
 			// now we upload the pages in batches of 3
+			// Rate limit: 18 requests per minute = 1 request every 3.33 seconds
+			// With batches of 3, we need to wait ~10 seconds between batches to stay under the limit
+			const RATE_LIMIT_DELAY_MS = 5000; // 5 seconds to stay safely under 18 req/min
+
 			for (let i = 0; i < this.pages.length; i += 3) {
 				const batch = this.pages.slice(i, i + 3);
 				await Promise.all(batch.map((page) => page.uploadToSession(uploadSessionId, token)));
@@ -236,6 +241,11 @@ export class ChapterState {
 				}
 
 				this.checkProgress();
+
+				// Don't wait after the last batch
+				if (i + 3 < this.pages.length) {
+					await sleep(RATE_LIMIT_DELAY_MS);
+				}
 			}
 
 			// Gather upload IDs, preserving page order
@@ -253,31 +263,25 @@ export class ChapterState {
 
 			const finalizedUploadRequest = {
 				draft: {
-					chapter: this.chapterNumber,
-					volume: this.chapterVolume,
-					title: this.chapterTitle,
+					chapter: this.chapterNumber?.toString() ?? '',
+					volume: this.chapterVolume?.toString() ?? '',
+					title: this.chapterTitle ?? '',
 					language: 'en' // TODO: make this configurable
 				},
 				page_order: gatheredUploads
 			};
 
-			const finalizeResponse = await axios.post(
+			await axios.post(
 				`https://api.weebdex.org/upload/${this.associatedUploadSessionId}/commit`,
 				finalizedUploadRequest,
 				{
 					headers: {
-						Authorization: `Bearer ${token}`
+						Authorization: `Bearer ${token}`,
+						Origin: 'https://weebdex.org/',
+						Referer: 'https://weebdex.org/'
 					}
 				}
 			);
-
-			if (finalizeResponse.status !== 200) {
-				this.status = ChapterStatus.FAILED;
-				this.error = `Failed to finalize upload: ${finalizeResponse.statusText}`;
-				this.progress = 0;
-				await this.cleanupFailedUpload(token);
-				return;
-			}
 
 			this.status = ChapterStatus.COMPLETED;
 			this.progress = 1;
