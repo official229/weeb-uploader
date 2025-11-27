@@ -113,6 +113,7 @@
 	}
 
 	function applyBatchExtraction() {
+		console.log('Applying batch extraction');
 		let hasChanges = false;
 
 		for (let i = 0; i < chapters.length; i++) {
@@ -122,12 +123,15 @@
 			const chapter = chapters[i];
 			if (!chapter.originalFolderName) continue;
 
+			console.log(`Chapter ${i}: ${chapter.originalFolderName}`);
+
 			// Extract title
 			if (titleRegex.trim()) {
 				const extractedTitle = extractWithRegex(chapter.originalFolderName, titleRegex);
 				if (extractedTitle !== null && chapter.chapterTitle !== extractedTitle) {
 					chapter.chapterTitle = extractedTitle;
 					hasChanges = true;
+					console.log(`Chapter title changed from ${chapter.chapterTitle} to ${extractedTitle}`);
 				}
 			}
 
@@ -135,6 +139,7 @@
 			if (volumeRegex.trim()) {
 				const extractedVolume = extractNumberWithRegex(chapter.originalFolderName, volumeRegex);
 				if (extractedVolume !== null && chapter.chapterVolume !== extractedVolume) {
+					console.log(`Chapter volume changed from ${chapter.chapterVolume} to ${extractedVolume}`);
 					chapter.chapterVolume = extractedVolume;
 					hasChanges = true;
 				}
@@ -144,6 +149,7 @@
 			if (numberRegex.trim()) {
 				const extractedNumber = extractNumberWithRegex(chapter.originalFolderName, numberRegex);
 				if (extractedNumber !== null && chapter.chapterNumber !== extractedNumber) {
+					console.log(`Chapter number changed from ${chapter.chapterNumber} to ${extractedNumber}`);
 					chapter.chapterNumber = extractedNumber;
 					hasChanges = true;
 				}
@@ -211,7 +217,7 @@
 						id="title-regex"
 						type="text"
 						bind:value={titleRegex}
-						placeholder="e.g., ^(.+?)\\s+-\\s+Vol"
+						placeholder="e.g., ^(.+?)\s+-\s+Vol"
 						class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>
 					<button
@@ -240,7 +246,7 @@
 						id="volume-regex"
 						type="text"
 						bind:value={volumeRegex}
-						placeholder="e.g., Vol\\.\\s*(\\d+)"
+						placeholder="e.g., Vol\.\s*(\d+)"
 						class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>
 					<button
@@ -269,7 +275,7 @@
 						id="number-regex"
 						type="text"
 						bind:value={numberRegex}
-						placeholder="e.g., Ch\\.\\s*(\\d+)"
+						placeholder="e.g., Ch\.\s*(\d+)"
 						class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>
 					<button

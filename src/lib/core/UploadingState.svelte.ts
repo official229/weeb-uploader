@@ -21,6 +21,7 @@ export class ChapterPageState {
 	public status = $state<ChapterPageStatus>(ChapterPageStatus.NOT_STARTED);
 	public progress = $state<number>(0); // 0 - 1 normalized progress
 	public error = $state<string | null>(null);
+	public associatedUploadSessionFileId = $state<string | null>(null);
 
 	public constructor(
 		pageName: string,
@@ -28,7 +29,8 @@ export class ChapterPageState {
 		pageFile: File,
 		status: ChapterPageStatus = ChapterPageStatus.NOT_STARTED,
 		progress: number = 0,
-		error: string | null = null
+		error: string | null = null,
+		associatedUploadSessionFileId: string | null = null
 	) {
 		this.pageName = pageName;
 		this.pageIndex = pageIndex;
@@ -36,6 +38,7 @@ export class ChapterPageState {
 		this.status = status;
 		this.progress = progress;
 		this.error = error;
+		this.associatedUploadSessionFileId = associatedUploadSessionFileId;
 	}
 }
 
@@ -59,6 +62,8 @@ export class ChapterState {
 	public status = $state<ChapterStatus>(ChapterStatus.NOT_STARTED);
 	public progress = $state<number>(0); // 0 - 1 normalized progress
 
+	public associatedUploadSessionId = $state<string | null>(null);
+
 	public constructor(
 		originalFolderName: string | null,
 		chapterTitle: string | null,
@@ -68,7 +73,8 @@ export class ChapterState {
 		associatedGroup: ChapterUploadingGroup,
 		pages: ChapterPageState[],
 		status: ChapterStatus = ChapterStatus.NOT_STARTED,
-		progress: number = 0
+		progress: number = 0,
+		associatedUploadSessionId: string | null = null
 	) {
 		this.originalFolderName = originalFolderName;
 		this.chapterTitle = chapterTitle;
@@ -79,6 +85,7 @@ export class ChapterState {
 		this.pages = pages;
 		this.status = status;
 		this.progress = progress;
+		this.associatedUploadSessionId = associatedUploadSessionId;
 	}
 
 	public checkProgress(): void {
