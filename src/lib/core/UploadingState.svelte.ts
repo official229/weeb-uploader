@@ -48,6 +48,7 @@ export enum ChapterStatus {
 }
 
 export class ChapterState {
+	public originalFolderName = $state<string | null>(null);
 	public chapterTitle = $state<string | null>(null);
 	public chapterVolume = $state<number | null>(null);
 	public chapterNumber = $state<number | null>(null);
@@ -59,6 +60,7 @@ export class ChapterState {
 	public progress = $state<number>(0); // 0 - 1 normalized progress
 
 	public constructor(
+		originalFolderName: string | null,
 		chapterTitle: string | null,
 		chapterVolume: number | null,
 		chapterNumber: number | null,
@@ -68,6 +70,7 @@ export class ChapterState {
 		status: ChapterStatus = ChapterStatus.NOT_STARTED,
 		progress: number = 0
 	) {
+		this.originalFolderName = originalFolderName;
 		this.chapterTitle = chapterTitle;
 		this.chapterVolume = chapterVolume;
 		this.chapterNumber = chapterNumber;

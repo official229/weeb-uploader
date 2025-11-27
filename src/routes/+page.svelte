@@ -5,7 +5,11 @@
 	import Uploader from '$lib/components/Uploader.svelte';
 	import { groupFilesByFolders, filterImageFiles, SelectedFolder } from '$lib/core/GroupedFolders';
 
-	type GroupedData = Array<{ name: string; nameFolder: SelectedFolder; files: Array<{ file: SelectedFolder['files'][0]; folder: SelectedFolder }> }>;
+	type GroupedData = Array<{
+		name: string;
+		nameFolder: SelectedFolder;
+		files: Array<{ file: SelectedFolder['files'][0]; folder: SelectedFolder }>;
+	}>;
 
 	let selectedFiles = $state<File[] | null>(null);
 	let isLoading = $state(false);
@@ -77,13 +81,13 @@
 					<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Upload Groups</h2>
 					<button
 						type="button"
-						onclick={() => showUploader = false}
+						onclick={() => (showUploader = false)}
 						class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
 					>
 						Back to Selector
 					</button>
 				</div>
-				<Uploader groups={uploaderGroups} />
+				<Uploader groups={uploaderGroups} rootFolder={groupedFolder} />
 			</div>
 		{:else}
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -100,8 +104,8 @@
 					<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
 						Vertical Slice Selector
 					</h2>
-					<VerticalSliceSelector 
-						folder={groupedFolder} 
+					<VerticalSliceSelector
+						folder={groupedFolder}
 						onProcess={(groups) => {
 							uploaderGroups = groups;
 							showUploader = true;
