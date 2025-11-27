@@ -9,7 +9,12 @@ const config = {
 	compilerOptions: {
 		runes: true
 	},
-	kit: { adapter: adapter() }
+	kit: {
+		adapter: adapter(),
+		paths: {
+			base: process.env.GITHUB_PAGES ? '/weeb-uploader' : ''
+		}
+	}
 };
 
 export default config;
