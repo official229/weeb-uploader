@@ -4,10 +4,10 @@
 	import ChapterList from './ChapterList.svelte';
 	import SeriesSetter from './SeriesSetter.svelte';
 	import { GlobalState, globalStateContext } from '$lib/core/GlobalState.svelte';
-	import { 
-		ChapterState, 
-		ChapterPageState, 
-		ChapterUploadingSeries, 
+	import {
+		ChapterState,
+		ChapterPageState,
+		ChapterUploadingSeries,
 		ChapterUploadingGroup,
 		ChapterPageStatus,
 		ChapterStatus
@@ -38,13 +38,16 @@
 	function convertGroupsToChapters(groups: GroupedData[]): ChapterState[] {
 		return groups.map((group, index) => {
 			// Get folder name - use the name from the group or try to get path
-			const folderName = rootFolder 
+			const folderName = rootFolder
 				? (getFolderPath(rootFolder, group.nameFolder) ?? group.name)
 				: group.name;
 
 			// Sort files by name for consistent ordering
-			const sortedFiles = [...group.files].sort((a, b) => 
-				a.file.file.name.localeCompare(b.file.file.name, undefined, { numeric: true, sensitivity: 'base' })
+			const sortedFiles = [...group.files].sort((a, b) =>
+				a.file.file.name.localeCompare(b.file.file.name, undefined, {
+					numeric: true,
+					sensitivity: 'base'
+				})
 			);
 
 			// Create pages from files
@@ -74,16 +77,14 @@
 		});
 	}
 
-	// Initialize chapters from groups
-	let chapters = $state<ChapterState[]>(convertGroupsToChapters(initialGroups));
+	// Initialize chapters in global state and sync when initialGroups changes
 	let previousGroupsRef = $state<GroupedData[] | null>(null);
 
-	// Sync chapters when initialGroups changes (only when the reference actually changes)
 	$effect(() => {
 		// Only recreate if initialGroups is a different reference (new selection from parent)
 		if (previousGroupsRef !== initialGroups) {
-			chapters = convertGroupsToChapters(initialGroups);
-			globalState.chapterStates = chapters;
+			const newChapters = convertGroupsToChapters(initialGroups);
+			globalState.chapterStates = newChapters;
 			previousGroupsRef = initialGroups;
 		}
 	});
@@ -94,36 +95,6 @@
 			sharedSeries.seriesId = globalState.seriesId;
 		}
 	});
-
-	// Update global state when chapters change
-	function handleChaptersChange(updatedChapters: ChapterState[]) {
-		chapters = updatedChapters;
-		globalState.chapterStates = chapters;
-	}
-
-	function removeChapter(chapterIndex: number, event: Event) {
-		event.stopPropagation();
-		const newChapters = chapters.filter((_, i) => i !== chapterIndex);
-		chapters = newChapters;
-		globalState.chapterStates = chapters;
-	}
-
-	function removePage(chapterIndex: number, pageIndex: number, event: Event) {
-		event.stopPropagation();
-		const chapter = chapters[chapterIndex];
-		if (!chapter) return;
-		
-		const newPages = chapter.pages.filter((_, i) => i !== pageIndex);
-		chapter.pages = newPages;
-		chapter.checkProgress();
-		
-		// Remove chapter if no pages remain
-		if (newPages.length === 0) {
-			removeChapter(chapterIndex, event);
-		} else {
-			globalState.chapterStates = chapters;
-		}
-	}
 </script>
 
 <div class="space-y-6">
@@ -133,11 +104,5 @@
 		<SeriesSetter />
 	{/if}
 
-	<ChapterList 
-		{chapters} 
-		{rootFolder}
-		onRemoveChapter={removeChapter} 
-		onRemovePage={removePage}
-		onChaptersChange={handleChaptersChange}
-	/>
+	<ChapterList {rootFolder} />
 </div>

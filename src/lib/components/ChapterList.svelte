@@ -3,25 +3,26 @@
 	import ImagePreviewGrid from './ImagePreviewGrid.svelte';
 	import { getFolderPath, SelectedFile } from '$lib/core/GroupedFolders';
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
+	import { getContext } from 'svelte';
+	import { globalStateContext, type GlobalState } from '$lib/core/GlobalState.svelte';
 
 	interface Props {
-		chapters: ChapterState[];
 		rootFolder?: SelectedFolder;
-		onRemoveChapter?: (chapterIndex: number, event: Event) => void;
-		onRemovePage?: (chapterIndex: number, pageIndex: number, event: Event) => void;
-		onChaptersChange?: (chapters: ChapterState[]) => void;
 	}
 
-	let { chapters, rootFolder, onRemoveChapter, onRemovePage, onChaptersChange }: Props = $props();
+	let { rootFolder }: Props = $props();
 
-	// Track expanded state
-	let expandedChapters = $state<Set<number>>(new Set());
+	const globalState = getContext(globalStateContext) as GlobalState;
+	const chapters = $derived(globalState.chapterStates);
 
-	// Track manually edited chapters (by index)
-	let manuallyEditedChapters = $state<Set<number>>(new Set());
+	// Track expanded state (by originalFolderName for stability after sorting)
+	let expandedChapters = $state<Set<string>>(new Set());
 
-	// Track editing state per chapter
-	let editingChapter = $state<number | null>(null);
+	// Track manually edited chapters (by originalFolderName for stability after sorting)
+	let manuallyEditedChapters = $state<Set<string>>(new Set());
+
+	// Track editing state per chapter (by originalFolderName for stability after sorting)
+	let editingChapter = $state<string | null>(null);
 	let editingField = $state<'title' | 'volume' | 'number' | null>(null);
 
 	// Batch editing regex inputs
@@ -29,21 +30,72 @@
 	let volumeRegex = $state<string>('');
 	let numberRegex = $state<string>('');
 
+	function getChapterKey(chapter: ChapterState): string {
+		return chapter.originalFolderName || `chapter-${chapters.indexOf(chapter)}`;
+	}
+
 	function toggleChapter(chapterIndex: number) {
+		const chapter = chapters[chapterIndex];
+		if (!chapter) return;
+		const key = getChapterKey(chapter);
 		const newSet = new Set(expandedChapters);
-		if (newSet.has(chapterIndex)) {
-			newSet.delete(chapterIndex);
+		if (newSet.has(key)) {
+			newSet.delete(key);
 		} else {
-			newSet.add(chapterIndex);
+			newSet.add(key);
 		}
 		expandedChapters = newSet;
 	}
 
 	function startEditing(chapterIndex: number, field: 'title' | 'volume' | 'number') {
-		editingChapter = chapterIndex;
+		const chapter = chapters[chapterIndex];
+		if (!chapter) return;
+		const key = getChapterKey(chapter);
+		editingChapter = key;
 		editingField = field;
-		manuallyEditedChapters.add(chapterIndex);
+		manuallyEditedChapters.add(key);
 		manuallyEditedChapters = new Set(manuallyEditedChapters);
+	}
+
+	function sortChapters(chapters: ChapterState[]): ChapterState[] {
+		return [...chapters].sort((a, b) => {
+			// Sort by volume first (null volumes go last)
+			const volumeA = a.chapterVolume;
+			const volumeB = b.chapterVolume;
+
+			if (volumeA === null && volumeB === null) {
+				// Both null, continue to chapter number comparison
+			} else if (volumeA === null) {
+				return 1; // null goes after non-null
+			} else if (volumeB === null) {
+				return -1; // non-null goes before null
+			} else {
+				const volumeCompare = String(volumeA).localeCompare(String(volumeB), undefined, {
+					numeric: true,
+					sensitivity: 'base'
+				});
+				if (volumeCompare !== 0) {
+					return volumeCompare;
+				}
+			}
+
+			// Then sort by chapter number (null numbers go last)
+			const numberA = a.chapterNumber;
+			const numberB = b.chapterNumber;
+
+			if (numberA === null && numberB === null) {
+				return 0; // Both null, equal
+			} else if (numberA === null) {
+				return 1; // null goes after non-null
+			} else if (numberB === null) {
+				return -1; // non-null goes before null
+			} else {
+				return String(numberA).localeCompare(String(numberB), undefined, {
+					numeric: true,
+					sensitivity: 'base'
+				});
+			}
+		});
 	}
 
 	function updateChapterField(
@@ -64,8 +116,15 @@
 
 		editingChapter = null;
 		editingField = null;
-		// Create a new array reference to trigger reactivity
-		onChaptersChange?.([...chapters]);
+
+		// Sort chapters if volume or number was changed
+		if (field === 'volume' || field === 'number') {
+			const sortedChapters = sortChapters(chapters);
+			globalState.chapterStates = sortedChapters;
+		} else {
+			// Create a new array reference to trigger reactivity
+			globalState.chapterStates = [...chapters];
+		}
 	}
 
 	function cancelEditing() {
@@ -77,15 +136,19 @@
 		const chapter = chapters[chapterIndex];
 		if (!chapter || !chapter.originalFolderName) return;
 
+		const chapterKey = getChapterKey(chapter);
+
 		// Revert to defaults
 		chapter.chapterTitle = chapter.originalFolderName;
 		chapter.chapterVolume = null;
 		chapter.chapterNumber = chapterIndex + 1; // Sequential index (1-based)
 
-		manuallyEditedChapters.delete(chapterIndex);
+		manuallyEditedChapters.delete(chapterKey);
 		manuallyEditedChapters = new Set(manuallyEditedChapters);
-		// Create a new array reference to trigger reactivity
-		onChaptersChange?.([...chapters]);
+
+		// Sort chapters after reverting volume/number
+		const sortedChapters = sortChapters(chapters);
+		globalState.chapterStates = sortedChapters;
 	}
 
 	function extractWithRegex(text: string, regexPattern: string): string | null {
@@ -115,13 +178,15 @@
 	function applyBatchExtraction() {
 		console.log('Applying batch extraction');
 		let hasChanges = false;
+		let volumeOrNumberChanged = false;
 
 		for (let i = 0; i < chapters.length; i++) {
-			// Skip manually edited chapters
-			if (manuallyEditedChapters.has(i)) continue;
-
 			const chapter = chapters[i];
 			if (!chapter.originalFolderName) continue;
+			const chapterKey = getChapterKey(chapter);
+
+			// Skip manually edited chapters
+			if (manuallyEditedChapters.has(chapterKey)) continue;
 
 			console.log(`Chapter ${i}: ${chapter.originalFolderName}`);
 
@@ -142,6 +207,7 @@
 					console.log(`Chapter volume changed from ${chapter.chapterVolume} to ${extractedVolume}`);
 					chapter.chapterVolume = extractedVolume;
 					hasChanges = true;
+					volumeOrNumberChanged = true;
 				}
 			}
 
@@ -152,13 +218,20 @@
 					console.log(`Chapter number changed from ${chapter.chapterNumber} to ${extractedNumber}`);
 					chapter.chapterNumber = extractedNumber;
 					hasChanges = true;
+					volumeOrNumberChanged = true;
 				}
 			}
 		}
 
 		if (hasChanges) {
-			// Create a new array reference to trigger reactivity
-			onChaptersChange?.([...chapters]);
+			// Sort chapters if volume or number was changed
+			if (volumeOrNumberChanged) {
+				const sortedChapters = sortChapters(chapters);
+				globalState.chapterStates = sortedChapters;
+			} else {
+				// Create a new array reference to trigger reactivity
+				globalState.chapterStates = [...chapters];
+			}
 		}
 	}
 
@@ -177,11 +250,10 @@
 
 		// Remove chapter if no pages remain
 		if (newPages.length === 0) {
-			onRemoveChapter?.(chapterIndex, event);
+			globalState.chapterStates = chapters.filter((_, i) => i !== chapterIndex);
 		} else {
-			onRemovePage?.(chapterIndex, pageIndex, event);
 			// Create a new array reference to trigger reactivity
-			onChaptersChange?.([...chapters]);
+			globalState.chapterStates = [...chapters];
 		}
 	}
 
@@ -296,11 +368,12 @@
 	<!-- Chapters List -->
 	<div class="space-y-4">
 		{#each chapters as chapter, chapterIndex}
-			{@const isExpanded = expandedChapters.has(chapterIndex)}
-			{@const isManuallyEdited = manuallyEditedChapters.has(chapterIndex)}
-			{@const isEditingTitle = editingChapter === chapterIndex && editingField === 'title'}
-			{@const isEditingVolume = editingChapter === chapterIndex && editingField === 'volume'}
-			{@const isEditingNumber = editingChapter === chapterIndex && editingField === 'number'}
+			{@const chapterKey = getChapterKey(chapter)}
+			{@const isExpanded = expandedChapters.has(chapterKey)}
+			{@const isManuallyEdited = manuallyEditedChapters.has(chapterKey)}
+			{@const isEditingTitle = editingChapter === chapterKey && editingField === 'title'}
+			{@const isEditingVolume = editingChapter === chapterKey && editingField === 'volume'}
+			{@const isEditingNumber = editingChapter === chapterKey && editingField === 'number'}
 
 			<div class="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
 				<!-- Chapter Header -->
@@ -461,20 +534,18 @@
 						</button>
 					{/if}
 
-					{#if onRemoveChapter}
-						<button
-							type="button"
-							onclick={(e) => {
-								e.stopPropagation();
-								onRemoveChapter?.(chapterIndex, e);
-							}}
-							class="flex-shrink-0 px-3 py-1.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors flex items-center gap-1.5"
-							title="Remove chapter"
-						>
-							<span class="i-mdi-delete text-base"></span>
-							<span>Remove</span>
-						</button>
-					{/if}
+					<button
+						type="button"
+						onclick={(e) => {
+							e.stopPropagation();
+							globalState.chapterStates = chapters.filter((_, i) => i !== chapterIndex);
+						}}
+						class="flex-shrink-0 px-3 py-1.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors flex items-center gap-1.5"
+						title="Remove chapter"
+					>
+						<span class="i-mdi-delete text-base"></span>
+						<span>Remove</span>
+					</button>
 				</div>
 
 				<!-- Expanded Content with Image Previews -->
@@ -484,9 +555,7 @@
 							file: new SelectedFile(page.pageFile, page.pageFile.name),
 							folder: {} as SelectedFolder
 						}))}
-						onRemove={onRemovePage
-							? (fileIndex, event) => handleRemovePage(chapterIndex, fileIndex, event)
-							: undefined}
+						onRemove={(fileIndex, event) => handleRemovePage(chapterIndex, fileIndex, event)}
 					/>
 				{/if}
 			</div>
