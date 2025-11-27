@@ -305,12 +305,15 @@ export class ChapterState {
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public async cleanupFailedUpload(_token: string): Promise<void> {
+	public async cleanupFailedUpload(token: string): Promise<void> {
 		if (!this.associatedUploadSessionId) {
 			return;
 		}
 
-		console.log('pretend clean up');
+		await axios.delete(`https://api.weebdex.org/upload/${this.associatedUploadSessionId}`, {
+			headers: {
+				Authorization: `Bearer ${token}`
+			}
+		});
 	}
 }
