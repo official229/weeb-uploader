@@ -1,6 +1,8 @@
+import axios from 'axios';
 import type { ChapterState } from './UploadingState.svelte';
 import { ChapterStatus, ChapterPageStatus } from './UploadingState.svelte';
 import { sleep } from './Utils';
+import { RATE_LIMITER_SESSION } from './ApiWithRateLimit.svelte';
 
 export enum UploaderStatus {
 	NOT_STARTED = 'NOT_STARTED',
@@ -63,6 +65,9 @@ export class ChapterUploader {
 		this.currentChapterIndex = 0;
 
 		try {
+			// check for any preexisting upload sessions and delete them
+			await this.deletePreexistingUploadSessions();
+
 			// Upload chapters one at a time
 			for (let i = 0; i < this.chapters.length; i++) {
 				this.currentChapterIndex = i;
@@ -77,7 +82,7 @@ export class ChapterUploader {
 				// Upload the chapter
 				await chapter.upload(this.authToken);
 
-				await sleep(2000);
+				await sleep(500);
 
 				// Check if upload failed
 				if (chapter.status === ChapterStatus.FAILED) {
@@ -128,6 +133,35 @@ export class ChapterUploader {
 				page.error = null;
 				page.associatedUploadSessionFileId = null;
 			}
+		}
+	}
+
+	private async deletePreexistingUploadSessions(): Promise<void> {
+		const response = await RATE_LIMITER_SESSION.makeRequest(() =>
+			axios.get(`https://api.weebdex.org/upload`, {
+				headers: {
+					Authorization: `Bearer ${this.authToken}`
+				}
+			})
+		);
+
+		if (response.status === 204) {
+			return;
+		}
+
+		if (response.status === 200) {
+			const data = response.data;
+			if (!data.id || typeof data.id !== 'string') {
+				return;
+			}
+
+			await RATE_LIMITER_SESSION.makeRequest(() =>
+				axios.delete(`https://api.weebdex.org/upload/${data.id}`, {
+					headers: {
+						Authorization: `Bearer ${this.authToken}`
+					}
+				})
+			);
 		}
 	}
 }

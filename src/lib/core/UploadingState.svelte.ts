@@ -1,5 +1,6 @@
 import axios, { type AxiosProgressEvent } from 'axios';
 import { sleep } from './Utils';
+import { RATE_LIMITER_SESSION, RATE_LIMITER_UPLOAD } from './ApiWithRateLimit.svelte';
 
 export class ScanGroup {
 	public groupId = $state<string>('');
@@ -63,15 +64,17 @@ export class ChapterPageState {
 		};
 
 		try {
-			const response = await axios.post(`https://api.weebdex.org/upload/${sessionId}`, formData, {
-				headers: {
-					Authorization: `Bearer ${authToken}`,
-					Origin: 'https://weebdex.org',
-					Referer: 'https://weebdex.org'
-					// Note: Don't set Content-Type for FormData - let axios set it with boundary
-				},
-				onUploadProgress: onUploadProgress
-			});
+			const response = await RATE_LIMITER_UPLOAD.makeRequest(() =>
+				axios.post(`https://api.weebdex.org/upload/${sessionId}`, formData, {
+					headers: {
+						Authorization: `Bearer ${authToken}`,
+						Origin: 'https://weebdex.org',
+						Referer: 'https://weebdex.org'
+						// Note: Don't set Content-Type for FormData - let axios set it with boundary
+					},
+					onUploadProgress: onUploadProgress
+				})
+			);
 
 			const data = response.data;
 
@@ -201,13 +204,15 @@ export class ChapterState {
 
 		try {
 			// first we create the upload session
-			const response = await axios.post(`https://api.weebdex.org/upload/begin`, sessionRequest, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-					Origin: 'https://weebdex.org',
-					Referer: 'https://weebdex.org'
-				}
-			});
+			const response = await RATE_LIMITER_SESSION.makeRequest(() =>
+				axios.post(`https://api.weebdex.org/upload/begin`, sessionRequest, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+						Origin: 'https://weebdex.org',
+						Referer: 'https://weebdex.org'
+					}
+				})
+			);
 
 			const data = response.data;
 			const uploadSessionId = data.id;
@@ -225,7 +230,7 @@ export class ChapterState {
 			// now we upload the pages in batches of 3
 			// Rate limit: 18 requests per minute = 1 request every 3.33 seconds
 			// With batches of 3, we need to wait ~10 seconds between batches to stay under the limit
-			const RATE_LIMIT_DELAY_MS = 5000; // 5 seconds to stay safely under 18 req/min
+			const RATE_LIMIT_DELAY_MS = 500; // 5 seconds to stay safely under 18 req/min
 
 			for (let i = 0; i < this.pages.length; i += 3) {
 				const batch = this.pages.slice(i, i + 3);
@@ -276,16 +281,16 @@ export class ChapterState {
 				page_order: gatheredUploads
 			};
 
-			await axios.post(
-				`https://api.weebdex.org/upload/${this.associatedUploadSessionId}/commit`,
-				finalizedUploadRequest,
-				{
-					headers: {
-						Authorization: `Bearer ${token}`,
-						Origin: 'https://weebdex.org/',
-						Referer: 'https://weebdex.org/'
+			await RATE_LIMITER_SESSION.makeRequest(() =>
+				axios.post(
+					`https://api.weebdex.org/upload/${this.associatedUploadSessionId}/commit`,
+					finalizedUploadRequest,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`
+						}
 					}
-				}
+				)
 			);
 
 			this.status = ChapterStatus.COMPLETED;
@@ -315,10 +320,12 @@ export class ChapterState {
 			return;
 		}
 
-		await axios.delete(`https://api.weebdex.org/upload/${this.associatedUploadSessionId}`, {
-			headers: {
-				Authorization: `Bearer ${token}`
-			}
-		});
+		await RATE_LIMITER_SESSION.makeRequest(() =>
+			axios.delete(`https://api.weebdex.org/upload/${this.associatedUploadSessionId}`, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			})
+		);
 	}
 }
