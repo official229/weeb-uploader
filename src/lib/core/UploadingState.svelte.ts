@@ -1,6 +1,6 @@
 import axios, { type AxiosProgressEvent } from 'axios';
-import { sleep } from './Utils';
 import { RATE_LIMITER_SESSION, RATE_LIMITER_UPLOAD } from './ApiWithRateLimit.svelte';
+import { cluster } from 'radashi';
 
 export class ScanGroup {
 	public groupId = $state<string>('');
@@ -308,16 +308,29 @@ export class ChapterState {
 			this.checkProgress(); // Update progress after session creation
 
 			// now we upload the pages in batches of up to 10 per request
-			// Rate limit: 18 requests per minute = 1 request every 3.33 seconds
+			// Process 3 chunks concurrently for better performance
 			const BATCH_SIZE = 10;
-			const RATE_LIMIT_DELAY_MS = 500; // 5 seconds to stay safely under 18 req/min
+			const CONCURRENT_CHUNKS = 3;
 
-			for (let i = 0; i < this.pages.length; i += BATCH_SIZE) {
-				const batch = this.pages.slice(i, i + BATCH_SIZE);
-				await ChapterPageState.uploadBatchToSession(batch, uploadSessionId, token);
+			const pageChunks = cluster(this.pages, BATCH_SIZE);
 
-				// validate none of the uploads failed
-				const failedPages = batch.filter((page) => page.status === ChapterPageStatus.FAILED);
+			// Process chunks in groups of 3 concurrently
+			for (let i = 0; i < pageChunks.length; i += CONCURRENT_CHUNKS) {
+				const chunkGroup = pageChunks.slice(i, i + CONCURRENT_CHUNKS);
+
+				// Upload all chunks in this group concurrently
+				await Promise.all(
+					chunkGroup.map((batch) =>
+						ChapterPageState.uploadBatchToSession(batch, uploadSessionId, token)
+					)
+				);
+
+				// Validate none of the uploads failed across all chunks in this group
+				const failedPages: ChapterPageState[] = [];
+				for (const batch of chunkGroup) {
+					failedPages.push(...batch.filter((page) => page.status === ChapterPageStatus.FAILED));
+				}
+
 				if (failedPages.length > 0) {
 					this.status = ChapterStatus.FAILED;
 					const errorMessages = failedPages
@@ -331,11 +344,6 @@ export class ChapterState {
 				}
 
 				this.checkProgress();
-
-				// Don't wait after the last batch
-				if (i + BATCH_SIZE < this.pages.length) {
-					await sleep(RATE_LIMIT_DELAY_MS);
-				}
 			}
 
 			// Gather upload IDs, preserving page order
