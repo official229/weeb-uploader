@@ -82,8 +82,6 @@ export class ChapterUploader {
 				// Upload the chapter
 				await chapter.upload(this.authToken);
 
-				await sleep(500);
-
 				// Check if upload failed
 				if (chapter.status === ChapterStatus.FAILED) {
 					this.status = UploaderStatus.FAILED;
