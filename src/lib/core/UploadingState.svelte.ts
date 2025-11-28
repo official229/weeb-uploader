@@ -1,6 +1,11 @@
 import axios, { type AxiosProgressEvent } from 'axios';
 import { sleep } from './Utils';
 
+export class ScanGroup {
+	public groupId = $state<string>('');
+	public groupName = $state<string>('');
+}
+
 export class ChapterUploadingGroup {
 	public groupIds = $state<string[] | null>(null);
 }

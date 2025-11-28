@@ -3,6 +3,7 @@
 	import ApiAuthSetup from './ApiAuthSetup.svelte';
 	import ChapterList from './ChapterList.svelte';
 	import SeriesSetter from './SeriesSetter.svelte';
+	import GroupSetter from './GroupSetter.svelte';
 	import UploadProgress from './UploadProgress.svelte';
 	import { GlobalState, globalStateContext } from '$lib/core/GlobalState.svelte';
 	import {
@@ -140,6 +141,7 @@
 
 	{#if globalState.apiToken}
 		<SeriesSetter />
+		<GroupSetter />
 	{/if}
 
 	{#if isUploading && chapterUploader}
