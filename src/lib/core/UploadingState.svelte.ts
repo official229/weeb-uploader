@@ -67,10 +67,7 @@ export class ChapterPageState {
 			const response = await RATE_LIMITER_UPLOAD.makeRequest(() =>
 				axios.post(`https://api.weebdex.org/upload/${sessionId}`, formData, {
 					headers: {
-						Authorization: `Bearer ${authToken}`,
-						Origin: 'https://weebdex.org',
-						Referer: 'https://weebdex.org'
-						// Note: Don't set Content-Type for FormData - let axios set it with boundary
+						Authorization: `Bearer ${authToken}`
 					},
 					onUploadProgress: onUploadProgress
 				})

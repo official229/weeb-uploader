@@ -9,12 +9,20 @@ export class ApiWithRateLimit {
 	private lastBucketStart: DateTime;
 	private requestCount: number;
 
+	private chainLimits: ApiWithRateLimit[];
+
 	public constructor(rateLimit: number, rateLimitIntervalSeconds: number) {
 		this.rateLimit = rateLimit;
 		this.rateLimitInterval = Duration.fromDurationLike({ seconds: rateLimitIntervalSeconds });
 		this.lastRequestTime = DateTime.now();
 		this.lastBucketStart = DateTime.now();
 		this.requestCount = 0;
+		this.chainLimits = [];
+	}
+
+	public addChainLimit(chainLimit: ApiWithRateLimit): ApiWithRateLimit {
+		this.chainLimits.push(chainLimit);
+		return this;
 	}
 
 	public async makeRequest<T>(method: () => Promise<T>): Promise<T> {
@@ -26,7 +34,7 @@ export class ApiWithRateLimit {
 			this.lastRequestTime = now;
 			this.lastBucketStart = now;
 			this.requestCount = 1;
-			return this.runRequestWith429Wrapper(method);
+			return this.runRequestWithWrapper(method);
 		}
 
 		// rate limit exceeded, wait for the next bucket to start
@@ -38,17 +46,20 @@ export class ApiWithRateLimit {
 			this.lastRequestTime = now;
 			this.lastBucketStart = now;
 			this.requestCount = 1;
-			return this.runRequestWith429Wrapper(method);
+			return this.runRequestWithWrapper(method);
 		}
 
 		// request count is within the limit, make the request
 		this.requestCount++;
 		this.lastRequestTime = now;
-		return this.runRequestWith429Wrapper(method);
+		return this.runRequestWithWrapper(method);
 	}
 
-	private async runRequestWith429Wrapper<T>(method: () => Promise<T>): Promise<T> {
+	private async runRequestWithWrapper<T>(method: () => Promise<T>): Promise<T> {
 		try {
+			for (const chainLimit of this.chainLimits) {
+				await chainLimit.makeRequest(() => Promise.resolve());
+			}
 			return await method();
 		} catch (error) {
 			console.warn('Hit error in bucket, retrying...', error);
@@ -60,5 +71,6 @@ export class ApiWithRateLimit {
 	}
 }
 
-export const RATE_LIMITER_SESSION = new ApiWithRateLimit(20, 60);
-export const RATE_LIMITER_UPLOAD = new ApiWithRateLimit(2, 5);
+export const RATE_LIMITER_GLOBAL = new ApiWithRateLimit(4, 1);
+export const RATE_LIMITER_SESSION = new ApiWithRateLimit(20, 60).addChainLimit(RATE_LIMITER_GLOBAL);
+export const RATE_LIMITER_UPLOAD = new ApiWithRateLimit(20, 60).addChainLimit(RATE_LIMITER_GLOBAL);
