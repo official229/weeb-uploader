@@ -204,9 +204,7 @@ export class ChapterState {
 			const response = await RATE_LIMITER_SESSION.makeRequest(() =>
 				axios.post(`https://api.weebdex.org/upload/begin`, sessionRequest, {
 					headers: {
-						Authorization: `Bearer ${token}`,
-						Origin: 'https://weebdex.org',
-						Referer: 'https://weebdex.org'
+						Authorization: `Bearer ${token}`
 					}
 				})
 			);
