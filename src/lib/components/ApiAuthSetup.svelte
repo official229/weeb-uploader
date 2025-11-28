@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { GlobalState, globalStateContext } from '$lib/core/GlobalState.svelte';
 
 	const API_ENDPOINT = 'https://api.weebdex.org/upload/check-approval-required';
+	const STORAGE_KEY = 'weebdex_api_token';
 
 	const globalState = getContext(globalStateContext) as GlobalState;
 	if (!globalState) {
@@ -17,6 +18,16 @@
 
 	// Computed derived state for validation status
 	const validated = $derived(globalState.apiToken !== null);
+
+	// Load token from session storage on mount
+	onMount(() => {
+		if (typeof window !== 'undefined') {
+			const storedToken = sessionStorage.getItem(STORAGE_KEY);
+			if (storedToken) {
+				globalState.apiToken = storedToken;
+			}
+		}
+	});
 
 	async function validateApiAccess() {
 		if (!inputValue.trim()) {
@@ -40,17 +51,27 @@
 			});
 
 			if (response.ok) {
-				// Validation successful - store token in global state
-				globalState.apiToken = inputValue.trim();
+				// Validation successful - store token in global state and session storage
+				const token = inputValue.trim();
+				globalState.apiToken = token;
+				if (typeof window !== 'undefined') {
+					sessionStorage.setItem(STORAGE_KEY, token);
+				}
 				validationError = null;
 			} else {
 				// Validation failed
 				validationError = `Validation failed: ${response.status} ${response.statusText}`;
 				globalState.apiToken = null;
+				if (typeof window !== 'undefined') {
+					sessionStorage.removeItem(STORAGE_KEY);
+				}
 			}
 		} catch (error) {
 			validationError = error instanceof Error ? error.message : 'Failed to validate API access';
 			globalState.apiToken = null;
+			if (typeof window !== 'undefined') {
+				sessionStorage.removeItem(STORAGE_KEY);
+			}
 		} finally {
 			isValidating = false;
 		}
@@ -60,6 +81,9 @@
 		inputValue = '';
 		globalState.apiToken = null;
 		validationError = null;
+		if (typeof window !== 'undefined') {
+			sessionStorage.removeItem(STORAGE_KEY);
+		}
 	}
 </script>
 
