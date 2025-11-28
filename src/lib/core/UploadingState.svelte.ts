@@ -112,6 +112,91 @@ export class ChapterPageState {
 			}
 		}
 	}
+
+	public static async uploadBatchToSession(
+		pages: ChapterPageState[],
+		sessionId: string,
+		authToken: string
+	): Promise<void> {
+		if (pages.length === 0) {
+			return;
+		}
+
+		// Set all pages to uploading status
+		for (const page of pages) {
+			page.status = ChapterPageStatus.UPLOADING;
+			page.progress = 0;
+			page.error = null;
+		}
+
+		const formData = new FormData();
+		for (const page of pages) {
+			formData.append('file', page.pageFile);
+		}
+
+		const onUploadProgress = (progressEvent: AxiosProgressEvent) => {
+			const overallProgress = Number(progressEvent.progress?.toFixed(2) ?? 0);
+			// Distribute progress evenly across all pages in the batch
+			for (const page of pages) {
+				page.progress = overallProgress;
+			}
+		};
+
+		try {
+			const response = await RATE_LIMITER_UPLOAD.makeRequest(() =>
+				axios.post(`https://api.weebdex.org/upload/${sessionId}`, formData, {
+					headers: {
+						Authorization: `Bearer ${authToken}`
+					},
+					onUploadProgress: onUploadProgress
+				})
+			);
+
+			const data = response.data;
+
+			// API returns an array of responses, one for each file
+			if (!Array.isArray(data) || data.length !== pages.length) {
+				const errorMsg = `Failed to upload batch: Expected ${pages.length} responses, got ${Array.isArray(data) ? data.length : 'invalid format'}`;
+				for (const page of pages) {
+					page.status = ChapterPageStatus.FAILED;
+					page.error = errorMsg;
+					page.progress = 0;
+				}
+				return;
+			}
+
+			// Map response IDs back to pages
+			for (let i = 0; i < pages.length; i++) {
+				const responseItem = data[i];
+				if (!responseItem.id || typeof responseItem.id !== 'string') {
+					pages[i].status = ChapterPageStatus.FAILED;
+					pages[i].error = `Failed to get upload session file ID: Invalid response format`;
+					pages[i].progress = 0;
+				} else {
+					pages[i].associatedUploadSessionFileId = responseItem.id;
+					pages[i].status = ChapterPageStatus.UPLOADED;
+					pages[i].progress = 1;
+					pages[i].error = null;
+				}
+			}
+		} catch (error) {
+			for (const page of pages) {
+				page.status = ChapterPageStatus.FAILED;
+				page.progress = 0;
+
+				if (axios.isAxiosError(error)) {
+					page.error =
+						error.response?.data?.message ||
+						error.message ||
+						`Network error: ${error.response?.statusText || 'Unknown error'}`;
+				} else if (error instanceof Error) {
+					page.error = error.message;
+				} else {
+					page.error = 'Unknown error occurred during upload';
+				}
+			}
+		}
+	}
 }
 
 export enum ChapterStatus {
@@ -222,14 +307,14 @@ export class ChapterState {
 			this.associatedUploadSessionId = uploadSessionId;
 			this.checkProgress(); // Update progress after session creation
 
-			// now we upload the pages in batches of 3
+			// now we upload the pages in batches of up to 10 per request
 			// Rate limit: 18 requests per minute = 1 request every 3.33 seconds
-			// With batches of 3, we need to wait ~10 seconds between batches to stay under the limit
+			const BATCH_SIZE = 10;
 			const RATE_LIMIT_DELAY_MS = 500; // 5 seconds to stay safely under 18 req/min
 
-			for (let i = 0; i < this.pages.length; i += 3) {
-				const batch = this.pages.slice(i, i + 3);
-				await Promise.all(batch.map((page) => page.uploadToSession(uploadSessionId, token)));
+			for (let i = 0; i < this.pages.length; i += BATCH_SIZE) {
+				const batch = this.pages.slice(i, i + BATCH_SIZE);
+				await ChapterPageState.uploadBatchToSession(batch, uploadSessionId, token);
 
 				// validate none of the uploads failed
 				const failedPages = batch.filter((page) => page.status === ChapterPageStatus.FAILED);
@@ -248,7 +333,7 @@ export class ChapterState {
 				this.checkProgress();
 
 				// Don't wait after the last batch
-				if (i + 3 < this.pages.length) {
+				if (i + BATCH_SIZE < this.pages.length) {
 					await sleep(RATE_LIMIT_DELAY_MS);
 				}
 			}
