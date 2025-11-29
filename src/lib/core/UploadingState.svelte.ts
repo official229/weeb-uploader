@@ -217,7 +217,7 @@ export class ChapterState {
 	public chapterNumber = $state<string | null>(null);
 
 	public associatedSeries = $state<ChapterUploadingSeries | null>(null);
-	public associatedGroup = $state<ChapterUploadingGroup | null>(null);
+	public associatedGroup = $state<ChapterUploadingGroup>(null as unknown as ChapterUploadingGroup);
 	public pages = $state<ChapterPageState[]>([]);
 	public status = $state<ChapterStatus>(ChapterStatus.NOT_STARTED);
 	public progress = $state<number>(0); // 0 - 1 normalized progress

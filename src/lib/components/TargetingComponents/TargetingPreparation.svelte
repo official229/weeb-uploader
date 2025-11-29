@@ -11,6 +11,7 @@
 		ChapterUploadingGroup,
 		ChapterUploadingSeries
 	} from '$lib/core/UploadingState.svelte';
+	import TargetingBatchEdit from './TargetingBatchEdit.svelte';
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
@@ -56,12 +57,18 @@
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<h2 class="text-xl font-semibold">Chapter Preparation</h2>
+		<div class="flex flex-col gap-2">
+			<h2 class="text-lg font-semibold">Batch Edit</h2>
+			<TargetingBatchEdit bind:chapters={targetingState.chapterStates} />
+		</div>
 
-		<div class="flex flex-col gap-2 max-h-200 overflow-y-auto">
-			{#each targetingState.chapterStates as chapter, index}
-				<TargetedChapterEditor bind:chapter={targetingState.chapterStates[index]} />
-			{/each}
+		<div class="flex flex-col gap-2">
+			<h2 class="text-lg font-semibold">Chapters</h2>
+			<div class="flex flex-col gap-2 max-h-200 overflow-y-auto">
+				{#each targetingState.chapterStates as chapter, index}
+					<TargetedChapterEditor bind:chapter={targetingState.chapterStates[index]} />
+				{/each}
+			</div>
 		</div>
 	</div>
 </div>

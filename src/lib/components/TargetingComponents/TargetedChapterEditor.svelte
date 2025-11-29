@@ -4,6 +4,7 @@
 	import { TargetingState, targetingStateContext } from './TargetingState.svelte';
 	import TargetingEditableField from './TargetingEditableField.svelte';
 	import TargetedImageEditor from './TargetedImageEditor.svelte';
+	import TargetingEditableGroup from './TargetingEditableGroup.svelte';
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
@@ -48,6 +49,7 @@
 
 				<div class="flex flex-row gap-2 items-center">
 					<span class="text-sm text-gray-500">Groups:</span>
+					<TargetingEditableGroup bind:groups={ch.associatedGroup} />
 				</div>
 			</div>
 
