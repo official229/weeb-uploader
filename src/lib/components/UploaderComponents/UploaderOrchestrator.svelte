@@ -5,6 +5,16 @@
 		targetingStateContext
 	} from '../TargetingComponents/TargetingState.svelte';
 	import UploaderChapterProgression from './UploaderChapterProgression.svelte';
+	import { ChapterPageStatus, ChapterStatus } from '$lib/core/UploadingState.svelte';
+	import { ApiAuthContext, apiAuthContext } from '$lib/core/GlobalState.svelte';
+	import { ChapterUploader } from '$lib/core/ChapterUploader.svelte';
+
+	const authContext = getContext<ApiAuthContext>(apiAuthContext);
+	if (!authContext) {
+		throw new Error(
+			'UploaderOrchestrator must be used within a component that provides ApiAuthContext context'
+		);
+	}
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
@@ -17,15 +27,101 @@
 
 	interface Props {
 		onDone: () => void;
+		busy: boolean;
 	}
 
-	let { onDone }: Props = $props();
+	let { onDone, busy: working = $bindable(false) }: Props = $props();
+
+	let chaptersTotal = $derived(chapters.length);
+	let chaptersCompleted = $derived(
+		chapters.filter((chapter) => chapter.status === ChapterStatus.COMPLETED).length
+	);
+	let pagesTotal = $derived(chapters.reduce((acc, chapter) => acc + chapter.pages.length, 0));
+	let pagesUploaded = $derived(
+		chapters.reduce(
+			(acc, chapter) =>
+				acc + chapter.pages.filter((page) => page.status === ChapterPageStatus.UPLOADED).length,
+			0
+		)
+	);
+
+	let chapterUploader = $state<ChapterUploader | null>(null);
+	let isUploading = $state(false);
+
+	function startUpload() {
+		if (!authContext.apiToken) {
+			alert('Please set up API authentication first');
+			return;
+		}
+
+		if (!targetingState.seriesId) {
+			alert('Please set a series ID first');
+			return;
+		}
+
+		if (targetingState.chapterStates.length === 0) {
+			alert('No chapters to upload');
+			return;
+		}
+
+		console.log('Starting upload');
+		console.log('API Token:', authContext.apiToken);
+		console.log('Series ID:', targetingState.seriesId);
+		console.log('Chapters:', targetingState.chapterStates);
+
+		// Create a new uploader instance with current chapters
+		chapterUploader = new ChapterUploader([...targetingState.chapterStates], authContext.apiToken);
+
+		isUploading = true;
+		working = true;
+
+		// Start the upload
+		chapterUploader
+			.uploadAll()
+			.then(() => {
+				isUploading = false;
+			})
+			.catch((error) => {
+				console.error('Upload error:', error);
+				isUploading = false;
+			})
+			.finally(() => {
+				working = false;
+			});
+	}
+
+	function prettyFormatProgress(progress: number): string {
+		const roundedProgress = Math.round(progress * 100);
+		return `${roundedProgress}%`;
+	}
 </script>
 
-<div>
-	<p>uploader orchestrator</p>
+<div class="flex flex-col gap-2">
+	<h1 class="text-2xl font-bold">Upload Progress</h1>
 
-	{#each chapters as chapter, index}
-		<UploaderChapterProgression {chapter} />
-	{/each}
+	<div class="flex flex-row gap-2">
+		<button
+			disabled={isUploading}
+			class="cursor-pointer disabled:cursor-not-allowed bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+			onclick={startUpload}>Start</button
+		>
+	</div>
+
+	<div class="flex flex-col gap-2 bg-gray-300 rounded-md p-2">
+		<p class="text-sm">Chapters: {chaptersCompleted} / {chaptersTotal}</p>
+		<p class="text-sm">Pages: {pagesUploaded} / {pagesTotal}</p>
+
+		<div class="relative w-full h-5 bg-gray-200 rounded-md overflow-clip">
+			<div class="h-full bg-blue-300" style="width: {(pagesUploaded / pagesTotal) * 100}%"></div>
+			<p class="text-xs absolute inset-0 text-black flex items-center justify-center">
+				{prettyFormatProgress(pagesUploaded / pagesTotal)}
+			</p>
+		</div>
+	</div>
+
+	<div class="flex flex-col gap-2">
+		{#each chapters as chapter, index}
+			<UploaderChapterProgression {chapter} />
+		{/each}
+	</div>
 </div>

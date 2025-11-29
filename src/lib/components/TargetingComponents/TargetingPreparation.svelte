@@ -101,6 +101,18 @@
 			}
 		}
 	});
+
+	$effect(() => {
+		if (targetingState.seriesId !== null) {
+			targetingState.chapterStates.forEach((chapter) => {
+				if (!chapter.associatedSeries) {
+					chapter.associatedSeries = new ChapterUploadingSeries();
+				}
+
+				chapter.associatedSeries.seriesId = targetingState.seriesId ?? '';
+			});
+		}
+	});
 </script>
 
 <div>

@@ -26,8 +26,9 @@
 		FINISHED = 'FINISHED'
 	}
 
+	let working = $state(false);
 	let editorState = $state<EDITOR_STATE>(EDITOR_STATE.PICKING_FOLDER);
-	let disableSwitching = $derived(editorState === EDITOR_STATE.UPLOADING);
+	let disableSwitching = $derived(editorState === EDITOR_STATE.UPLOADING && working);
 	let authSettingsVisible = $derived(
 		editorState !== EDITOR_STATE.UPLOADING && editorState !== EDITOR_STATE.EDITING_CHAPTERS
 	);
@@ -148,7 +149,7 @@
 			onDone={onChapterEditingDone}
 		/>
 	{:else if editorState === EDITOR_STATE.UPLOADING}
-		<UploaderOrchestrator onDone={onUploadingDone} />
+		<UploaderOrchestrator onDone={onUploadingDone} bind:busy={working} />
 	{:else if editorState === EDITOR_STATE.FINISHED}
 		<p>todo: finished</p>
 	{/if}

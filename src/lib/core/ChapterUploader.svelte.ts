@@ -1,7 +1,6 @@
 import axios from 'axios';
 import type { ChapterState } from './UploadingState.svelte';
 import { ChapterStatus, ChapterPageStatus } from './UploadingState.svelte';
-import { sleep } from './Utils';
 import { RATE_LIMITER_SESSION } from './ApiWithRateLimit.svelte';
 
 export enum UploaderStatus {
@@ -68,10 +67,14 @@ export class ChapterUploader {
 			// check for any preexisting upload sessions and delete them
 			await this.deletePreexistingUploadSessions();
 
+			const chaptersToUpload = this.chapters.filter(
+				(chapter) => chapter.status !== ChapterStatus.COMPLETED
+			);
+
 			// Upload chapters one at a time
-			for (let i = 0; i < this.chapters.length; i++) {
+			for (let i = 0; i < chaptersToUpload.length; i++) {
 				this.currentChapterIndex = i;
-				const chapter = this.chapters[i];
+				const chapter = chaptersToUpload[i];
 
 				// Skip if already completed
 				if (chapter.status === ChapterStatus.COMPLETED) {
