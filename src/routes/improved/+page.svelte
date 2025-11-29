@@ -22,23 +22,21 @@
 		FINISHED = 'FINISHED'
 	}
 
-	$effect(() => {
-		if (selectedFiles && editorState === EDITOR_STATE.PICKING_FOLDER) {
-			editorState = EDITOR_STATE.SELECTING_FOLDERS;
-			return;
-		}
-
-		if (finalizedFolderSelection && editorState === EDITOR_STATE.SELECTING_FOLDERS) {
-			editorState = EDITOR_STATE.EDITING_CHAPTERS;
-			return;
-		}
-	});
-
 	let editorState = $state<EDITOR_STATE>(EDITOR_STATE.PICKING_FOLDER);
 	let disableSwitching = $derived(editorState === EDITOR_STATE.UPLOADING);
 
 	function switchEditorState(state: EDITOR_STATE) {
-		if (selectedFiles) editorState = state;
+		if (selectedFiles) {
+			editorState = state;
+		}
+	}
+
+	function onFolderSelectionDone() {
+		editorState = EDITOR_STATE.SELECTING_FOLDERS;
+	}
+
+	function onFolderSelectionSliceDone() {
+		editorState = EDITOR_STATE.EDITING_CHAPTERS;
 	}
 </script>
 
@@ -117,11 +115,19 @@
 	</div>
 
 	{#if editorState === EDITOR_STATE.PICKING_FOLDER}
-		<FolderSelector bind:selectedFiles class="w-full max-w-md mx-auto" />
+		<FolderSelector
+			onDone={onFolderSelectionDone}
+			bind:selectedFiles
+			class="w-full max-w-md mx-auto"
+		/>
 	{:else if editorState === EDITOR_STATE.SELECTING_FOLDERS}
-		<VerticalSlice {selectedFiles} bind:finalizedFolderSelection />
-	{:else if editorState === EDITOR_STATE.EDITING_CHAPTERS}
-		<p>todo: editing chapters</p>
+		<VerticalSlice
+			onDone={onFolderSelectionSliceDone}
+			{selectedFiles}
+			bind:finalizedFolderSelection
+		/>
+	{:else if editorState === EDITOR_STATE.EDITING_CHAPTERS && finalizedFolderSelection}
+		<TargetingPreparation selectedFolders={finalizedFolderSelection} />
 	{:else if editorState === EDITOR_STATE.UPLOADING}
 		<p>todo: uploading</p>
 	{:else if editorState === EDITOR_STATE.FINISHED}

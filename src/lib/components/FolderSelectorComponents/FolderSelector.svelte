@@ -2,9 +2,14 @@
 	interface Props {
 		selectedFiles: File[] | null;
 		class?: string;
+		onDone: () => void;
 	}
 
-	let { selectedFiles = $bindable<File[] | null>(null), class: className = '' }: Props = $props();
+	let {
+		selectedFiles = $bindable<File[] | null>(null),
+		class: className = '',
+		onDone
+	}: Props = $props();
 
 	let inputElementRef: HTMLInputElement | null = $state(null);
 
@@ -32,7 +37,7 @@
 
 		selectedFiles = filteredFiles;
 
-		console.log(filteredFiles);
+		onDone();
 	}
 
 	function onClick() {

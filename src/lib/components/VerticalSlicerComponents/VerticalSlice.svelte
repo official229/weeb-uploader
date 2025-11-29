@@ -9,12 +9,14 @@
 		selectedFiles: File[] | null;
 		finalizedFolderSelection: SelectedFolder[] | null;
 		class?: string;
+		onDone: () => void;
 	}
 
 	let {
 		selectedFiles,
 		finalizedFolderSelection = $bindable<SelectedFolder[] | null>(null),
-		class: className = ''
+		class: className = '',
+		onDone
 	}: Props = $props();
 
 	let slicedFolders = $state<SelectedFolder[] | null>(null);
@@ -31,6 +33,7 @@
 
 	function onSubmit() {
 		finalizedFolderSelection = slicedFolders;
+		onDone();
 	}
 
 	function handleMouseDown(e: MouseEvent) {
