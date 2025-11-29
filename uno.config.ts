@@ -1,13 +1,16 @@
-import { defineConfig, presetIcons, presetWind4 } from "unocss";
+import { defineConfig, presetIcons, presetWind4 } from 'unocss';
+import extractorSvelte from '@unocss/extractor-svelte';
 
 export default defineConfig({
 	presets: [
 		presetWind4({
-			dark: "class",
+			dark: 'class',
 			preflights: {
-				theme: true,
-			},
+				theme: true
+			}
 		}),
-		presetIcons(),
-	]
+		presetIcons()
+	],
+	shortcuts: [['clickable-hint', 'cursor-pointer bg-gray-200 hover:bg-gray-300 transition-colors']],
+	extractors: [extractorSvelte()]
 });

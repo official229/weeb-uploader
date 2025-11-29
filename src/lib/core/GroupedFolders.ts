@@ -7,16 +7,19 @@ export class SelectedFile {
 
 export class SelectedFolder {
 	constructor(
-		public folder: string, // we don't have a folder handle, we're pretending
+		public name: string, // we don't have a folder handle, we're pretending
+		public path: string, // The full path of this folder from the root
 		public files: SelectedFile[],
-		public folders: SelectedFolder[]
+		public folders: SelectedFolder[],
+		public level: number, // The level/depth of this folder in the tree
+		public depth: number // The maximum depth of files within this folder (including subfolders)
 	) {}
 }
 
 /**
  * Natural sort comparison function that handles numeric values like Windows Explorer.
  * Uses localeCompare with numeric option for proper alphanumeric sorting.
- * 
+ *
  * @param a - First string to compare
  * @param b - Second string to compare
  * @returns Comparison result (-1, 0, or 1)
@@ -28,13 +31,13 @@ function naturalCompare(a: string, b: string): number {
 /**
  * Groups an array of File objects into a tree structure of SelectedFolder and SelectedFile
  * based on their webkitRelativePath property.
- * 
+ *
  * @param files - Array of File objects with webkitRelativePath property
  * @returns Array of root-level SelectedFolder objects (top-level folders and files at root)
  */
 export function groupFilesByFolders(files: File[]): SelectedFolder {
 	if (files.length === 0) {
-		return new SelectedFolder('/', [], []);
+		return new SelectedFolder('/', '/', [], [], 0, 0);
 	}
 
 	// Map to store folders by their full path
@@ -44,30 +47,33 @@ export function groupFilesByFolders(files: File[]): SelectedFolder {
 	// Helper function to get or create a folder and ensure parent chain exists
 	function getOrCreateFolder(pathParts: string[]): SelectedFolder {
 		const fullPath = pathParts.join('/');
-		
+
 		if (folderMap.has(fullPath)) {
 			return folderMap.get(fullPath)!;
 		}
 
 		const folderName = pathParts[pathParts.length - 1];
-		const folder = new SelectedFolder(folderName, [], []);
+		// Level is the number of path parts (0 for root level folders, 1 for first level, etc.)
+		const level = pathParts.length;
+		// Depth will be calculated later after all files are processed
+		const folder = new SelectedFolder(folderName, fullPath, [], [], level, 0);
 		folderMap.set(fullPath, folder);
-		
+
 		// If not root level, ensure parent exists and add this folder to it
 		if (pathParts.length > 1) {
 			const parentPath = pathParts.slice(0, -1);
 			const parentFolder = getOrCreateFolder(parentPath);
 			parentFolder.folders.push(folder);
 		}
-		
+
 		return folder;
 	}
 
 	// Process each file
 	for (const file of files) {
-		const relativePath = file.webkitRelativePath || file.name;
+		const relativePath = file.webkitRelativePath ?? file.name;
 		const pathParts = relativePath.split('/').filter(Boolean);
-		
+
 		if (pathParts.length === 1) {
 			// File is at root level of the selected folder
 			rootFiles.push(new SelectedFile(file, relativePath));
@@ -81,10 +87,10 @@ export function groupFilesByFolders(files: File[]): SelectedFolder {
 
 	// Collect root-level folders (folders whose path has only one part)
 	const rootFolders: SelectedFolder[] = [];
-	
+
 	for (const [path, folder] of folderMap.entries()) {
 		if (path.split('/').length === 1) {
-			  rootFolders.push(folder);
+			rootFolders.push(folder);
 		}
 	}
 
@@ -92,10 +98,10 @@ export function groupFilesByFolders(files: File[]): SelectedFolder {
 	function sortFolder(folder: SelectedFolder): void {
 		// Sort files by their file name
 		folder.files.sort((a, b) => naturalCompare(a.file.name, b.file.name));
-		
+
 		// Sort folders by their folder name
-		folder.folders.sort((a, b) => naturalCompare(a.folder, b.folder));
-		
+		folder.folders.sort((a, b) => naturalCompare(a.name, b.name));
+
 		// Recursively sort subfolders
 		for (const subfolder of folder.folders) {
 			sortFolder(subfolder);
@@ -104,43 +110,84 @@ export function groupFilesByFolders(files: File[]): SelectedFolder {
 
 	// Sort root files
 	rootFiles.sort((a, b) => naturalCompare(a.file.name, b.file.name));
-	
+
 	// Sort root folders
-	rootFolders.sort((a, b) => naturalCompare(a.folder, b.folder));
-	
+	rootFolders.sort((a, b) => naturalCompare(a.name, b.name));
+
 	// Sort all subfolders recursively
 	for (const folder of rootFolders) {
 		sortFolder(folder);
 	}
 
+	// Calculate depth for each folder (maximum depth of files within the folder)
+	function calculateDepth(folder: SelectedFolder): number {
+		let maxDepth = 0;
+
+		// Check files directly in this folder
+		// Files at root level have depth 0, files in one folder have depth 1, etc.
+		for (const file of folder.files) {
+			const pathParts = file.path.split('/').filter(Boolean);
+			const fileDepth = pathParts.length - 1;
+			maxDepth = Math.max(maxDepth, fileDepth);
+		}
+
+		// Check subfolders recursively
+		for (const subfolder of folder.folders) {
+			const subfolderDepth = calculateDepth(subfolder);
+			maxDepth = Math.max(maxDepth, subfolderDepth);
+		}
+
+		folder.depth = maxDepth;
+		return maxDepth;
+	}
+
+	// Calculate depth for all folders
+	for (const folder of rootFolders) {
+		calculateDepth(folder);
+	}
+
 	// If there are root files, we need to return them as a root folder
 	// If there are also root folders, combine them
-	const rootFolder = new SelectedFolder('/', rootFiles, rootFolders);
-	
+	// Root folder has level 0
+	const rootFolder = new SelectedFolder('/', '/', rootFiles, rootFolders, 0, 0);
+
+	// Calculate depth for root folder (files at root have depth 0)
+	calculateDepth(rootFolder);
+
 	// Sort the root folder itself
 	sortFolder(rootFolder);
-	
+
 	return rootFolder;
 }
 
 /**
  * Filters an array of File objects to only include image files.
- * 
+ *
  * @param files - Array of File objects
  * @returns Array of File objects that are images
  */
 export function filterImageFiles(files: File[]): File[] {
-	const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'];
-	return files.filter(file => {
+	const imageTypes = [
+		'image/jpeg',
+		'image/jpg',
+		'image/png',
+		'image/gif',
+		'image/webp',
+		'image/bmp',
+		'image/svg+xml'
+	];
+	return files.filter((file) => {
 		const type = file.type.toLowerCase();
-		return imageTypes.some(imageType => type.includes(imageType)) || 
-		       /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
+		return (
+			imageTypes.some((imageType) => type.includes(imageType)) ||
+			/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name)
+		);
 	});
 }
 
 /**
  * Recursively collects all folders at a specific depth level from the folder tree.
- * 
+ *
  * @param folder - The root folder to search from
  * @param targetDepth - The depth level to collect folders from (0 = root, 1 = first level, etc.)
  * @param currentDepth - Current depth in recursion (default: 0)
@@ -154,7 +201,7 @@ export function getFoldersAtDepth(
 	collectedFolders: SelectedFolder[] = []
 ): SelectedFolder[] {
 	// If we've reached the target depth, add this folder (if it's not the root)
-	if (currentDepth === targetDepth && folder.folder !== '/') {
+	if (currentDepth === targetDepth && folder.name !== '/') {
 		collectedFolders.push(folder);
 		// Don't recurse further - we only want folders at this exact depth
 		return collectedFolders;
@@ -172,7 +219,7 @@ export function getFoldersAtDepth(
 
 /**
  * Calculates the maximum depth of the folder tree.
- * 
+ *
  * @param folder - The root folder
  * @param currentDepth - Current depth in recursion (default: 0)
  * @returns Maximum depth of the folder tree
@@ -194,7 +241,7 @@ export function getMaxDepth(folder: SelectedFolder, currentDepth: number = 0): n
 /**
  * Finds the parent folder of a given folder at a specific depth.
  * Recursively searches the tree to find the target folder and returns its ancestor at the specified depth.
- * 
+ *
  * @param root - The root folder to search from
  * @param targetFolder - The folder to find the parent for
  * @param parentDepth - The depth level of the parent to find
@@ -210,7 +257,7 @@ export function findParentAtDepth(
 	currentPath: SelectedFolder[] = []
 ): SelectedFolder | null {
 	// Build path: skip root (depth 0) when it's the root folder marker
-	const newPath = root.folder === '/' ? currentPath : [...currentPath, root];
+	const newPath = root.name === '/' ? currentPath : [...currentPath, root];
 
 	// If we've found the target folder, return its ancestor at parentDepth
 	if (root === targetFolder) {
@@ -224,7 +271,13 @@ export function findParentAtDepth(
 
 	// Recurse into subfolders
 	for (const subfolder of root.folders) {
-		const result = findParentAtDepth(subfolder, targetFolder, parentDepth, currentDepth + 1, newPath);
+		const result = findParentAtDepth(
+			subfolder,
+			targetFolder,
+			parentDepth,
+			currentDepth + 1,
+			newPath
+		);
 		if (result !== null) {
 			return result;
 		}
@@ -235,7 +288,7 @@ export function findParentAtDepth(
 
 /**
  * Finds all folders that are ancestors of the given folders at a specific depth.
- * 
+ *
  * @param root - The root folder to search from
  * @param targetFolders - Array of folders to find parents for
  * @param parentDepth - The depth level of the parents to find
@@ -247,18 +300,18 @@ export function findParentsAtDepth(
 	parentDepth: number
 ): Map<SelectedFolder, SelectedFolder | null> {
 	const result = new Map<SelectedFolder, SelectedFolder | null>();
-	
+
 	for (const targetFolder of targetFolders) {
 		const parent = findParentAtDepth(root, targetFolder, parentDepth);
 		result.set(targetFolder, parent);
 	}
-	
+
 	return result;
 }
 
 /**
  * Gets the full path of a folder from the root.
- * 
+ *
  * @param root - The root folder to search from
  * @param targetFolder - The folder to find the path for
  * @param currentPath - Current path in recursion (default: [])
@@ -270,7 +323,7 @@ export function getFolderPath(
 	currentPath: string[] = []
 ): string | null {
 	// Build path: skip root (depth 0) when it's the root folder marker
-	const newPath = root.folder === '/' ? currentPath : [...currentPath, root.folder];
+	const newPath = root.name === '/' ? currentPath : [...currentPath, root.name];
 
 	// If we've found the target folder, return its path
 	if (root === targetFolder) {

@@ -1,13 +1,14 @@
 <script lang="ts">
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
-	import FolderView from './FolderView.svelte';
+	import DirectoryExplorer from '$lib/components/VerticalSlicerComponents/DirectoryExplorer.svelte';
 
 	interface Props {
 		folder: SelectedFolder;
 		level?: number;
+		class?: string;
 	}
 
-	let { folder, level = 0 }: Props = $props();
+	let { folder, level = 0, class: className = '' }: Props = $props();
 	let isExpanded = $state(false);
 
 	function toggleExpanded() {
@@ -17,15 +18,15 @@
 	}
 
 	const hasContent = folder.files.length > 0 || folder.folders.length > 0;
-	const indent = level * 1.5; // rem units
+	const indent = `${level * 5}px`; // px units
 </script>
 
-<div class="select-none">
+<div class={['select-none', className]}>
 	<!-- Folder Header -->
 	<button
 		type="button"
 		class="flex items-center gap-2 py-1 px-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors w-full text-left"
-		style="padding-left: {indent}rem;"
+		style="padding-left: {indent};"
 		onclick={toggleExpanded}
 		disabled={!hasContent}
 	>
@@ -50,6 +51,13 @@
 			{folder.name || 'Root'}
 		</span>
 
+		<!-- Level Badge -->
+		<span
+			class="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded"
+		>
+			L{folder.level}
+		</span>
+
 		<!-- File/Folder Count -->
 		<span class="text-sm text-gray-500 dark:text-gray-400 ml-auto">
 			({folder.files.length} file{folder.files.length !== 1 ? 's' : ''}, {folder.folders.length} folder{folder
@@ -61,17 +69,17 @@
 
 	<!-- Expanded Content -->
 	{#if isExpanded}
-		<div class="ml-4" style="margin-left: {indent + 1}rem;">
+		<div class="ml-4" style="margin-left: {indent};">
 			<!-- Subfolders -->
 			{#each folder.folders as subfolder}
-				<FolderView folder={subfolder} level={level + 1} />
+				<DirectoryExplorer folder={subfolder} level={level + 1} />
 			{/each}
 
 			<!-- Files -->
 			{#each folder.files as selectedFile}
 				<div
 					class="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 dark:hover:bg-gray-900 rounded transition-colors"
-					style="padding-left: {(level + 1) * 1.5}rem;"
+					style="padding-left: {indent};"
 				>
 					<span class="w-4 h-4"></span>
 					<span class="i-mdi-file text-gray-500 dark:text-gray-400"></span>

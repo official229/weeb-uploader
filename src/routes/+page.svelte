@@ -14,7 +14,7 @@
 	let selectedFiles = $state<File[] | null>(null);
 	let isLoading = $state(false);
 	let imageFiles = $state<File[]>([]);
-	let groupedFolder = $state<SelectedFolder>(new SelectedFolder('/', [], []));
+	let groupedFolder = $state<SelectedFolder>(new SelectedFolder('/', '/', [], [], 0, 0));
 	let loadingMessage = $state('');
 	let showUploader = $state(false);
 	let uploaderGroups = $state<GroupedData>([]);
@@ -23,7 +23,7 @@
 	$effect(() => {
 		if (!selectedFiles) {
 			imageFiles = [];
-			groupedFolder = new SelectedFolder('/', [], []);
+			groupedFolder = new SelectedFolder('/', '/', [], [], 0, 0);
 			return;
 		}
 
@@ -37,7 +37,7 @@
 
 		// Step 2: Group filtered images by folders
 		if (filtered.length === 0) {
-			groupedFolder = new SelectedFolder('/', [], []);
+			groupedFolder = new SelectedFolder('/', '/', [], [], 0, 0);
 			isLoading = false;
 			loadingMessage = '';
 			return;
