@@ -46,7 +46,9 @@
 	}
 </script>
 
-<div class={['flex flex-row gap-2 items-center', className]}>
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class={['flex flex-row gap-2 items-center', className]} onclick={(e) => e.stopPropagation()}>
 	{#if isEditing}
 		<form
 			onsubmit={(e) => {
@@ -72,7 +74,9 @@
 			>
 				<div class="i-mdi-close h-5 w-5 text-white"></div>
 			</button>
-			<button type="submit" class="hidden" aria-label="Save"></button>
+			<button type="submit" aria-label="Save" class="cursor-pointer bg-green-500 rounded-md p-1">
+				<div class="i-mdi-check h-5 w-5 text-white"></div>
+			</button>
 		</form>
 	{:else}
 		<button

@@ -22,9 +22,10 @@
 
 	interface Props {
 		selectedFolders: SelectedFolder[];
+		onDone: () => void;
 	}
 
-	const { selectedFolders }: Props = $props();
+	const { selectedFolders, onDone }: Props = $props();
 
 	$effect(() => {
 		targetingState.chapterStates = selectedFolders.map((folder, index) => {
@@ -62,11 +63,19 @@
 			<TargetingBatchEdit bind:chapters={targetingState.chapterStates} />
 		</div>
 
+		<button
+			type="button"
+			class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
+			onclick={onDone}
+		>
+			Start Upload
+		</button>
+
 		<div class="flex flex-col gap-2">
 			<h2 class="text-lg font-semibold">Chapters</h2>
-			<div class="flex flex-col gap-2 max-h-200 overflow-y-auto">
+			<div class="flex flex-col gap-2 max-h-150 overflow-y-auto">
 				{#each targetingState.chapterStates as chapter, index}
-					<TargetedChapterEditor bind:chapter={targetingState.chapterStates[index]} />
+					<TargetedChapterEditor {index} bind:chapter={targetingState.chapterStates[index]} />
 				{/each}
 			</div>
 		</div>

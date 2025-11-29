@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { ChapterState } from '$lib/core/UploadingState.svelte';
+	import { ChapterUploadingGroup, type ChapterState } from '$lib/core/UploadingState.svelte';
+	import TargetingEditableGroup from './TargetingEditableGroup.svelte';
 
 	interface Props {
 		chapters: ChapterState[];
@@ -10,6 +11,63 @@
 	let titleRegex = $state('');
 	let volumeRegex = $state('');
 	let chapterRegex = $state('');
+	let groups = $state<ChapterUploadingGroup>(new ChapterUploadingGroup());
+
+	// starting index: 1
+	let rangeStart = $state<number | null>(null);
+	let rangeEnd = $state<number | null>(null);
+
+	function applyTitleRegex() {
+		if (!titleRegex.trim()) return;
+
+		const regex = new RegExp(titleRegex);
+		chapterStates.forEach((chapter) => {
+			if (!chapter.originalFolderPath) return;
+
+			const match = chapter.originalFolderPath.match(regex);
+			if (match && match[1]) {
+				chapter.chapterTitle = match[1];
+			}
+		});
+	}
+
+	function applyVolumeRegex() {
+		if (!volumeRegex.trim()) return;
+
+		const regex = new RegExp(volumeRegex);
+		chapterStates.forEach((chapter) => {
+			if (!chapter.originalFolderPath) return;
+
+			const match = chapter.originalFolderPath.match(regex);
+			if (match && match[1]) {
+				chapter.chapterTitle = match[1];
+			}
+		});
+	}
+
+	function applyChapterNumberRegex() {
+		if (!chapterRegex.trim()) return;
+
+		const regex = new RegExp(chapterRegex);
+		chapterStates.forEach((chapter) => {
+			if (!chapter.originalFolderPath) return;
+
+			const match = chapter.originalFolderPath.match(regex);
+			if (match && match[1]) {
+				chapter.chapterNumber = match[1];
+			}
+		});
+	}
+
+	function applyGroupsToRange() {
+		const start = (rangeStart ?? 1) - 1;
+		const end = (rangeEnd ?? chapterStates.length) - 1;
+		const groupIds = groups.groupIds ?? [];
+
+		for (let i = start; i <= end; i++) {
+			chapterStates[i].associatedGroup.groupIds = groupIds;
+		}
+	}
 </script>
 
 <div class="flex flex-col gap-2">
@@ -23,12 +81,16 @@
 		pages.
 		<br />
 		You are also able to assign groups to chapters, but for this you first need to register them with
-		Group Preparation above.
+		Group Preparation above. Groups will be applied to all chapters by default, or to the range if specified
+		(values are inclusive)
 	</p>
 
 	<!-- Title Regex -->
 	<form
-		onsubmit={(e) => e.preventDefault()}
+		onsubmit={(e) => {
+			applyTitleRegex();
+			e.preventDefault();
+		}}
 		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center"
 	>
 		<p class="font-bold">Extract Title Regex:</p>
@@ -48,7 +110,10 @@
 
 	<!-- Volume Regex -->
 	<form
-		onsubmit={(e) => e.preventDefault()}
+		onsubmit={(e) => {
+			applyVolumeRegex();
+			e.preventDefault();
+		}}
 		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center"
 	>
 		<p class="font-bold">Extract Volume Regex:</p>
@@ -68,7 +133,10 @@
 
 	<!-- Chapter Number Regex -->
 	<form
-		onsubmit={(e) => e.preventDefault()}
+		onsubmit={(e) => {
+			applyChapterNumberRegex();
+			e.preventDefault();
+		}}
 		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center"
 	>
 		<p class="font-bold">Extract Chapter Number Regex:</p>
@@ -84,5 +152,47 @@
 		>
 			Apply
 		</button>
+	</form>
+
+	<!-- Groups -->
+	<form
+		onsubmit={(e) => {
+			applyGroupsToRange();
+			e.preventDefault();
+		}}
+		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
+	>
+		<div class="flex flex-row gap-2">
+			<p class="font-bold">Assign Groups to All Chapters:</p>
+			<TargetingEditableGroup bind:groups />
+		</div>
+
+		<div class="flex flex-row gap-2 items-center">
+			<p>Range:</p>
+			<input
+				type="number"
+				bind:value={rangeStart}
+				placeholder="Start"
+				min="1"
+				max={chapterStates.length}
+				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+			/>
+			<p>to</p>
+			<input
+				type="number"
+				bind:value={rangeEnd}
+				placeholder="End"
+				min="1"
+				max={chapterStates.length}
+				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+			/>
+
+			<button
+				type="submit"
+				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
+			>
+				Apply
+			</button>
+		</div>
 	</form>
 </div>

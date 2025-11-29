@@ -27,6 +27,10 @@
 
 		const foldersAtChapterNameLevel = getFoldersAtLevel(parseInt(chapterNameLevel), selectedFolder);
 		const filteredFolders = filterFilesByPath(foldersAtChapterNameLevel, filePathFilter);
+
+		// natural sort the folders
+		filteredFolders.sort((a, b) => a.name.localeCompare(b.name));
+
 		slicedFolders = filteredFolders;
 	});
 

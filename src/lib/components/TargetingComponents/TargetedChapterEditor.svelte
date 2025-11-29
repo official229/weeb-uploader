@@ -14,11 +14,12 @@
 	}
 
 	interface Props {
+		index: number;
 		chapter: ChapterState;
 		class?: string;
 	}
 
-	const { chapter: ch = $bindable(), class: className }: Props = $props();
+	const { index, chapter: ch = $bindable(), class: className }: Props = $props();
 
 	let isExpanded = $state(false);
 
@@ -36,8 +37,10 @@
 		onclick={toggleExpanded}
 	>
 		<div class="flex flex-col gap-2">
-			<!-- Volume, chapter number, and Groups -->
+			<!-- Index, Volume, chapter number, and Groups -->
 			<div class="flex flex-row gap-2 items-center">
+				<span class="text-sm text-gray-500 mr-3">{index + 1}.</span>
+
 				<div class="flex flex-row gap-2 items-center">
 					<span class="text-sm text-gray-500">Vol.</span>
 					<TargetingEditableField bind:value={ch.chapterVolume} textClass="text-sm text-gray-500" />
