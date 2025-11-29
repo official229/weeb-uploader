@@ -1,10 +1,18 @@
 <script lang="ts">
 	import FolderSelector from '$lib/components/FolderSelectorComponents/FolderSelector.svelte';
+	import TargetingAuthValidator from '$lib/components/TargetingComponents/TargetingAuthValidator.svelte';
+	import TargetingPreparation from '$lib/components/TargetingComponents/TargetingPreparation.svelte';
+	import { TargetingState } from '$lib/components/TargetingComponents/TargetingState.svelte';
 	import VerticalSlice from '$lib/components/VerticalSlicerComponents/VerticalSlice.svelte';
+	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
+	import { getContext, setContext } from 'svelte';
 
 	let selectedFiles = $state<File[] | null>(null);
 	let finalizedFolderSelection = $state<SelectedFolder[] | null>(null);
+	let authSettingsVisible = $state(true);
+
+	setContext(apiAuthContext, new ApiAuthContext());
 
 	enum EDITOR_STATE {
 		PICKING_FOLDER = 'PICKING_FOLDER',
@@ -38,6 +46,10 @@
 	<h1 class="text-xl font-bold">Uploader Improved</h1>
 
 	<a href="/docs" class="text-blue-500 hover:text-blue-600">Tutorial & Docs</a>
+
+	{#if authSettingsVisible}
+		<TargetingAuthValidator />
+	{/if}
 
 	<div class="flex flex-row gap-1">
 		<button
