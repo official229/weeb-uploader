@@ -70,7 +70,7 @@
 				folderName, // originalFolderName
 				folderName, // chapterTitle (defaults to folder name)
 				null, // chapterVolume (defaults to null)
-				index + 1, // chapterNumber (sequential index, 1-based)
+				(index + 1).toString(), // chapterNumber (sequential index, 1-based)
 				sharedSeries,
 				sharedGroup,
 				pages,

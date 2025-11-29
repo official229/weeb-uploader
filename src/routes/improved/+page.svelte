@@ -6,6 +6,7 @@
 		TargetingState,
 		targetingStateContext
 	} from '$lib/components/TargetingComponents/TargetingState.svelte';
+	import UploaderOrchestrator from '$lib/components/UploaderComponents/UploaderOrchestrator.svelte';
 	import VerticalSlice from '$lib/components/VerticalSlicerComponents/VerticalSlice.svelte';
 	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
@@ -13,7 +14,6 @@
 
 	let selectedFiles = $state<File[] | null>(null);
 	let finalizedFolderSelection = $state<SelectedFolder[] | null>(null);
-	let authSettingsVisible = $state(true);
 
 	setContext(apiAuthContext, new ApiAuthContext());
 	setContext(targetingStateContext, new TargetingState());
@@ -28,6 +28,9 @@
 
 	let editorState = $state<EDITOR_STATE>(EDITOR_STATE.PICKING_FOLDER);
 	let disableSwitching = $derived(editorState === EDITOR_STATE.UPLOADING);
+	let authSettingsVisible = $derived(
+		editorState !== EDITOR_STATE.UPLOADING && editorState !== EDITOR_STATE.EDITING_CHAPTERS
+	);
 
 	function switchEditorState(state: EDITOR_STATE) {
 		if (selectedFiles) {
@@ -41,6 +44,14 @@
 
 	function onFolderSelectionSliceDone() {
 		editorState = EDITOR_STATE.EDITING_CHAPTERS;
+	}
+
+	function onChapterEditingDone() {
+		editorState = EDITOR_STATE.UPLOADING;
+	}
+
+	function onUploadingDone() {
+		editorState = EDITOR_STATE.FINISHED;
 	}
 </script>
 
@@ -102,6 +113,7 @@
 				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.UPLOADING,
 				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.UPLOADING
 			}}
+			disabled={!finalizedFolderSelection || disableSwitching}
 			onclick={() => switchEditorState(EDITOR_STATE.UPLOADING)}>Upload</button
 		>
 
@@ -131,9 +143,12 @@
 			bind:finalizedFolderSelection
 		/>
 	{:else if editorState === EDITOR_STATE.EDITING_CHAPTERS && finalizedFolderSelection}
-		<TargetingPreparation selectedFolders={finalizedFolderSelection} />
+		<TargetingPreparation
+			selectedFolders={finalizedFolderSelection}
+			onDone={onChapterEditingDone}
+		/>
 	{:else if editorState === EDITOR_STATE.UPLOADING}
-		<p>todo: uploading</p>
+		<UploaderOrchestrator onDone={onUploadingDone} />
 	{:else if editorState === EDITOR_STATE.FINISHED}
 		<p>todo: finished</p>
 	{/if}
