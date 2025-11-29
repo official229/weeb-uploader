@@ -2,7 +2,10 @@
 	import FolderSelector from '$lib/components/FolderSelectorComponents/FolderSelector.svelte';
 	import TargetingAuthValidator from '$lib/components/TargetingComponents/TargetingAuthValidator.svelte';
 	import TargetingPreparation from '$lib/components/TargetingComponents/TargetingPreparation.svelte';
-	import { TargetingState } from '$lib/components/TargetingComponents/TargetingState.svelte';
+	import {
+		TargetingState,
+		targetingStateContext
+	} from '$lib/components/TargetingComponents/TargetingState.svelte';
 	import VerticalSlice from '$lib/components/VerticalSlicerComponents/VerticalSlice.svelte';
 	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
@@ -13,6 +16,7 @@
 	let authSettingsVisible = $state(true);
 
 	setContext(apiAuthContext, new ApiAuthContext());
+	setContext(targetingStateContext, new TargetingState());
 
 	enum EDITOR_STATE {
 		PICKING_FOLDER = 'PICKING_FOLDER',
