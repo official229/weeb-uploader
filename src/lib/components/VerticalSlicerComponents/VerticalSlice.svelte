@@ -7,19 +7,31 @@
 
 	interface Props {
 		selectedFiles: File[] | null;
+		finalizedFolderSelection: SelectedFolder[] | null;
 		class?: string;
 	}
 
-	let { selectedFiles, class: className = '' }: Props = $props();
+	let {
+		selectedFiles,
+		finalizedFolderSelection = $bindable<SelectedFolder[] | null>(null),
+		class: className = ''
+	}: Props = $props();
 
 	let slicedFolders = $state<SelectedFolder[] | null>(null);
 	let selectedSlicedFolders = $state<VerticalSliceSelection[]>([]);
+	let activeSelectedSlicedFolders = $derived.by(() =>
+		selectedSlicedFolders.filter((folder) => folder.isSelected)
+	);
 
 	let groupedFolder = $derived.by(() => groupFilesByFolders(selectedFiles ?? []));
 
 	let verticalSliceRef = $state<HTMLDivElement | null>(null);
 	let isDragging = $state(false);
 	let leftWidth = $state(20); // percentage
+
+	function onSubmit() {
+		finalizedFolderSelection = slicedFolders;
+	}
 
 	function handleMouseDown(e: MouseEvent) {
 		isDragging = true;
@@ -105,7 +117,7 @@
 	{#if slicedFolders}
 		<div>
 			<h2 class="text-md font-bold">
-				Vertical Slice Preview ({selectedSlicedFolders.filter((folder) => folder.isSelected).length}
+				Vertical Slice Preview ({activeSelectedSlicedFolders.length}
 				selected)
 			</h2>
 			<VerticalSlicePreview
@@ -117,10 +129,11 @@
 
 		<button
 			type="button"
-			class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-			disabled={slicedFolders.length === 0}
+			class="cursor-pointer w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+			disabled={activeSelectedSlicedFolders.length === 0}
+			onclick={onSubmit}
 		>
-			Process & Upload
+			Continue to uploader
 		</button>
 	{/if}
 </div>
