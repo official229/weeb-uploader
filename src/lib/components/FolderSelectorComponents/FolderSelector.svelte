@@ -40,7 +40,7 @@
 		onDone();
 	}
 
-	function onClick() {
+	function onClick(e: Event) {
 		inputElementRef?.click();
 	}
 </script>
@@ -51,7 +51,7 @@
 >
 	<h1 class="font-bold">Folder Selector</h1>
 	<input
-		class="cursor-pointer"
+		class="hidden"
 		bind:this={inputElementRef}
 		type="file"
 		webkitdirectory={true}

@@ -223,9 +223,9 @@
 								</span>
 							{/if}
 						</div>
-						{#if chapter.originalFolderName}
+						{#if chapter.originalFolderPath}
 							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-								{chapter.originalFolderName}
+								{chapter.originalFolderPath}
 							</div>
 						{/if}
 					</div>

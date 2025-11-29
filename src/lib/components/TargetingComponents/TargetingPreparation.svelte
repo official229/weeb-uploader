@@ -2,12 +2,46 @@
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
 	import TargetingGroupValidator from '$lib/components/TargetingComponents/TargetingGroupValidator.svelte';
 	import TargetingSeriesValidator from '$lib/components/TargetingComponents/TargetingSeriesValidator.svelte';
+	import TargetedChapterEditor from './TargetedChapterEditor.svelte';
+	import { TargetingState, targetingStateContext } from './TargetingState.svelte';
+	import { getContext } from 'svelte';
+	import {
+		ChapterPageState,
+		ChapterState,
+		ChapterUploadingGroup,
+		ChapterUploadingSeries
+	} from '$lib/core/UploadingState.svelte';
+
+	const targetingState = getContext<TargetingState>(targetingStateContext);
+	if (!targetingState) {
+		throw new Error(
+			'TargetingPreparation must be used within a component that provides TargetingState context'
+		);
+	}
 
 	interface Props {
 		selectedFolders: SelectedFolder[];
 	}
 
 	const { selectedFolders }: Props = $props();
+
+	$effect(() => {
+		targetingState.chapterStates = selectedFolders.map((folder, index) => {
+			const pages = folder.files.map(
+				(file, pageIndex) => new ChapterPageState(file.file.name, pageIndex, file.file)
+			);
+
+			return new ChapterState(
+				folder.path,
+				folder.name,
+				null,
+				index.toString(),
+				new ChapterUploadingSeries(),
+				new ChapterUploadingGroup(),
+				pages
+			);
+		});
+	});
 </script>
 
 <div>
@@ -19,5 +53,15 @@
 	<div class="flex flex-col gap-2">
 		<h2 class="text-xl font-semibold">Group Preparation</h2>
 		<TargetingGroupValidator />
+	</div>
+
+	<div class="flex flex-col gap-2">
+		<h2 class="text-xl font-semibold">Chapter Preparation</h2>
+
+		<div class="flex flex-col gap-2 max-h-200 overflow-y-auto">
+			{#each targetingState.chapterStates as chapter, index}
+				<TargetedChapterEditor bind:chapter={targetingState.chapterStates[index]} />
+			{/each}
+		</div>
 	</div>
 </div>

@@ -31,6 +31,7 @@ export class ChapterPageState {
 	public progress = $state<number>(0); // 0 - 1 normalized progress
 	public error = $state<string | null>(null);
 	public associatedUploadSessionFileId = $state<string | null>(null);
+	public isDeleted = $state<boolean>(false);
 
 	public constructor(
 		pageName: string,
@@ -39,7 +40,8 @@ export class ChapterPageState {
 		status: ChapterPageStatus = ChapterPageStatus.NOT_STARTED,
 		progress: number = 0,
 		error: string | null = null,
-		associatedUploadSessionFileId: string | null = null
+		associatedUploadSessionFileId: string | null = null,
+		isDeleted: boolean = false
 	) {
 		this.pageName = pageName;
 		this.pageIndex = pageIndex;
@@ -48,6 +50,7 @@ export class ChapterPageState {
 		this.progress = progress;
 		this.error = error;
 		this.associatedUploadSessionFileId = associatedUploadSessionFileId;
+		this.isDeleted = isDeleted;
 	}
 
 	public async uploadToSession(sessionId: string, authToken: string): Promise<void> {
@@ -208,10 +211,10 @@ export enum ChapterStatus {
 }
 
 export class ChapterState {
-	public originalFolderName = $state<string | null>(null);
+	public originalFolderPath = $state<string | null>(null);
 	public chapterTitle = $state<string | null>(null);
-	public chapterVolume = $state<number | null>(null);
-	public chapterNumber = $state<number | null>(null);
+	public chapterVolume = $state<string | null>(null);
+	public chapterNumber = $state<string | null>(null);
 
 	public associatedSeries = $state<ChapterUploadingSeries | null>(null);
 	public associatedGroup = $state<ChapterUploadingGroup | null>(null);
@@ -223,10 +226,10 @@ export class ChapterState {
 	public associatedUploadSessionId = $state<string | null>(null);
 
 	public constructor(
-		originalFolderName: string | null,
+		originalFolderPath: string | null,
 		chapterTitle: string | null,
-		chapterVolume: number | null,
-		chapterNumber: number | null,
+		chapterVolume: string | null,
+		chapterNumber: string | null,
 		associatedSeries: ChapterUploadingSeries,
 		associatedGroup: ChapterUploadingGroup,
 		pages: ChapterPageState[],
@@ -235,7 +238,7 @@ export class ChapterState {
 		error: string | null = null,
 		associatedUploadSessionId: string | null = null
 	) {
-		this.originalFolderName = originalFolderName;
+		this.originalFolderPath = originalFolderPath;
 		this.chapterTitle = chapterTitle;
 		this.chapterVolume = chapterVolume;
 		this.chapterNumber = chapterNumber;

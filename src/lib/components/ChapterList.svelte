@@ -29,7 +29,7 @@
 	let editingField = $state<'title' | 'volume' | 'number' | null>(null);
 
 	function getChapterKey(chapter: ChapterState): string {
-		return chapter.originalFolderName || `chapter-${chapters.indexOf(chapter)}`;
+		return chapter.originalFolderPath || `chapter-${chapters.indexOf(chapter)}`;
 	}
 
 	function toggleChapter(chapterIndex: number) {
@@ -132,12 +132,12 @@
 
 	function revertChapter(chapterIndex: number) {
 		const chapter = chapters[chapterIndex];
-		if (!chapter || !chapter.originalFolderName) return;
+		if (!chapter || !chapter.originalFolderPath) return;
 
 		const chapterKey = getChapterKey(chapter);
 
 		// Revert to defaults
-		chapter.chapterTitle = chapter.originalFolderName;
+		chapter.chapterTitle = chapter.originalFolderPath;
 		chapter.chapterVolume = null;
 		chapter.chapterNumber = chapterIndex + 1; // Sequential index (1-based)
 
@@ -180,17 +180,17 @@
 
 		for (let i = 0; i < chapters.length; i++) {
 			const chapter = chapters[i];
-			if (!chapter.originalFolderName) continue;
+			if (!chapter.originalFolderPath) continue;
 			const chapterKey = getChapterKey(chapter);
 
 			// Skip manually edited chapters
 			if (manuallyEditedChapters.has(chapterKey)) continue;
 
-			console.log(`Chapter ${i}: ${chapter.originalFolderName}`);
+			console.log(`Chapter ${i}: ${chapter.originalFolderPath}`);
 
 			// Extract title
 			if (titleRegex.trim()) {
-				const extractedTitle = extractWithRegex(chapter.originalFolderName, titleRegex);
+				const extractedTitle = extractWithRegex(chapter.originalFolderPath, titleRegex);
 				if (extractedTitle !== null && chapter.chapterTitle !== extractedTitle) {
 					chapter.chapterTitle = extractedTitle;
 					hasChanges = true;
@@ -200,7 +200,7 @@
 
 			// Extract volume
 			if (volumeRegex.trim()) {
-				const extractedVolume = extractNumberWithRegex(chapter.originalFolderName, volumeRegex);
+				const extractedVolume = extractNumberWithRegex(chapter.originalFolderPath, volumeRegex);
 				if (extractedVolume !== null && chapter.chapterVolume !== extractedVolume) {
 					console.log(`Chapter volume changed from ${chapter.chapterVolume} to ${extractedVolume}`);
 					chapter.chapterVolume = extractedVolume;
@@ -211,7 +211,7 @@
 
 			// Extract number
 			if (numberRegex.trim()) {
-				const extractedNumber = extractNumberWithRegex(chapter.originalFolderName, numberRegex);
+				const extractedNumber = extractNumberWithRegex(chapter.originalFolderPath, numberRegex);
 				if (extractedNumber !== null && chapter.chapterNumber !== extractedNumber) {
 					console.log(`Chapter number changed from ${chapter.chapterNumber} to ${extractedNumber}`);
 					chapter.chapterNumber = extractedNumber;
@@ -251,12 +251,12 @@
 	}
 
 	function getFolderName(chapter: ChapterState): string {
-		if (rootFolder && chapter.originalFolderName) {
+		if (rootFolder && chapter.originalFolderPath) {
 			// Try to find the folder in the tree to get full path
 			// For now, just return the original folder name
-			return chapter.originalFolderName;
+			return chapter.originalFolderPath;
 		}
-		return chapter.originalFolderName || 'Unknown';
+		return chapter.originalFolderPath || 'Unknown';
 	}
 
 	// Group assignment functions
