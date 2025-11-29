@@ -10,16 +10,24 @@
 		PICKING_FOLDER = 'PICKING_FOLDER',
 		SELECTING_FOLDERS = 'SELECTING_FOLDERS',
 		EDITING_CHAPTERS = 'EDITING_CHAPTERS',
-		UPLOADING = 'UPLOADING'
+		UPLOADING = 'UPLOADING',
+		FINISHED = 'FINISHED'
 	}
 
 	$effect(() => {
-		if (selectedFiles) {
+		if (selectedFiles && editorState === EDITOR_STATE.PICKING_FOLDER) {
 			editorState = EDITOR_STATE.SELECTING_FOLDERS;
+			return;
+		}
+
+		if (finalizedFolderSelection && editorState === EDITOR_STATE.SELECTING_FOLDERS) {
+			editorState = EDITOR_STATE.EDITING_CHAPTERS;
+			return;
 		}
 	});
 
 	let editorState = $state<EDITOR_STATE>(EDITOR_STATE.PICKING_FOLDER);
+	let disableSwitching = $derived(editorState === EDITOR_STATE.UPLOADING);
 
 	function switchEditorState(state: EDITOR_STATE) {
 		if (selectedFiles) editorState = state;
@@ -31,46 +39,68 @@
 
 	<a href="/docs" class="text-blue-500 hover:text-blue-600">Tutorial & Docs</a>
 
-	<div class="flex flex-row gap-4">
+	<div class="flex flex-row gap-1">
 		<button
 			type="button"
 			class={{
-				'cursor-pointer hover:bg-gray-200 disabled:cursor-not-allowed p-2 rounded-md': true,
-				'bg-gray-300': editorState !== EDITOR_STATE.PICKING_FOLDER,
-				'bg-gray-400 hover:bg-gray-300': editorState === EDITOR_STATE.PICKING_FOLDER
+				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
+				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.PICKING_FOLDER,
+				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.PICKING_FOLDER
 			}}
+			disabled={disableSwitching}
 			onclick={() => switchEditorState(EDITOR_STATE.PICKING_FOLDER)}
 		>
 			Pick Folder
 		</button>
+
+		<div class="i-mdi-menu-right h-10"></div>
+
 		<button
 			type="button"
 			class={{
-				'cursor-pointer hover:bg-gray-200 disabled:cursor-not-allowed p-2 rounded-md': true,
-				'bg-gray-300 disabled:bg-gray-200': editorState !== EDITOR_STATE.SELECTING_FOLDERS,
-				'bg-gray-400 hover:bg-gray-300': editorState === EDITOR_STATE.SELECTING_FOLDERS
+				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
+				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.SELECTING_FOLDERS,
+				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.SELECTING_FOLDERS
 			}}
-			disabled={!selectedFiles}
+			disabled={!selectedFiles || disableSwitching}
 			onclick={() => switchEditorState(EDITOR_STATE.SELECTING_FOLDERS)}>Select Folders</button
 		>
+
+		<div class="i-mdi-menu-right h-10"></div>
+
 		<button
 			type="button"
 			class={{
-				'cursor-pointer hover:bg-gray-200 disabled:cursor-not-allowed p-2 rounded-md': true,
-				'bg-gray-300 disabled:bg-gray-200': editorState !== EDITOR_STATE.EDITING_CHAPTERS,
-				'bg-gray-400 hover:bg-gray-300': editorState === EDITOR_STATE.EDITING_CHAPTERS
+				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
+				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.EDITING_CHAPTERS,
+				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.EDITING_CHAPTERS
 			}}
-			disabled={!finalizedFolderSelection}
+			disabled={!finalizedFolderSelection || disableSwitching}
 			onclick={() => switchEditorState(EDITOR_STATE.EDITING_CHAPTERS)}>Edit Chapters</button
 		>
+
+		<div class="i-mdi-menu-right h-10"></div>
+
 		<button
 			type="button"
 			class={{
-				'cursor-pointer hover:bg-gray-200 disabled:cursor-not-allowed p-2 rounded-md': true,
-				'bg-gray-300 disabled:bg-gray-200': editorState !== EDITOR_STATE.UPLOADING,
-				'bg-gray-400 hover:bg-gray-300': editorState === EDITOR_STATE.UPLOADING
+				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
+				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.UPLOADING,
+				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.UPLOADING
 			}}
 			onclick={() => switchEditorState(EDITOR_STATE.UPLOADING)}>Upload</button
+		>
+
+		<div class="i-mdi-menu-right h-10"></div>
+
+		<button
+			type="button"
+			class={{
+				'p-2 rounded-md': true,
+				'bg-gray-300': editorState !== EDITOR_STATE.FINISHED,
+				'bg-blue-300': editorState === EDITOR_STATE.FINISHED
+			}}
+			disabled={true}>Finished</button
 		>
 	</div>
 
@@ -82,5 +112,7 @@
 		<p>todo: editing chapters</p>
 	{:else if editorState === EDITOR_STATE.UPLOADING}
 		<p>todo: uploading</p>
+	{:else if editorState === EDITOR_STATE.FINISHED}
+		<p>todo: finished</p>
 	{/if}
 </div>
