@@ -11,6 +11,7 @@
 	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
 	import { getContext, setContext } from 'svelte';
+	import { resolve } from '$app/paths';
 
 	let selectedFiles = $state<File[] | null>(null);
 	let finalizedFolderSelection = $state<SelectedFolder[] | null>(null);
@@ -59,7 +60,7 @@
 <div class="container mx-auto p-6 flex flex-col gap-6">
 	<h1 class="text-xl font-bold">Uploader Improved</h1>
 
-	<a href="/docs" class="text-blue-500 hover:text-blue-600">Tutorial & Docs</a>
+	<a href={resolve('/docs')} class="text-blue-500 hover:text-blue-600">Tutorial & Docs</a>
 
 	{#if authSettingsVisible}
 		<TargetingAuthValidator />
