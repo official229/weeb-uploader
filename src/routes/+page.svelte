@@ -3,8 +3,8 @@
 	import FolderView from '$lib/components/FolderView.svelte';
 	import VerticalSliceSelector from '$lib/components/VerticalSliceSelector.svelte';
 	import Uploader from '$lib/components/Uploader.svelte';
-	import { groupFilesByFolders, filterImageFiles, SelectedFolder } from '$lib/core/GroupedFolders';
-	filterValidFiles;
+	import { groupFilesByFolders, filterValidFiles, SelectedFolder } from '$lib/core/GroupedFolders';
+
 	type GroupedData = Array<{
 		name: string;
 		nameFolder: SelectedFolder;
@@ -32,7 +32,7 @@
 		isLoading = true;
 		loadingMessage = `Filtering image files from ${filesToProcess.length} total file${filesToProcess.length !== 1 ? 's' : ''}...`;
 
-		const filtered = filterImageFiles(filesToProcess);
+		const filtered = filterValidFiles(filesToProcess);
 		imageFiles = filtered;
 
 		// Step 2: Group filtered images by folders
