@@ -136,7 +136,7 @@
 			disabled={activeSelectedSlicedFolders.length === 0}
 			onclick={onSubmit}
 		>
-			Continue to uploader
+			Continue to Editor
 		</button>
 	{/if}
 </div>

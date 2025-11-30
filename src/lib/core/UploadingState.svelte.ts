@@ -53,69 +53,6 @@ export class ChapterPageState {
 		this.isDeleted = isDeleted;
 	}
 
-	public async uploadToSession(sessionId: string, authToken: string): Promise<void> {
-		// Set status to uploading before starting
-		this.status = ChapterPageStatus.UPLOADING;
-		this.progress = 0;
-		this.error = null;
-
-		const formData = new FormData();
-		formData.append('file', this.pageFile);
-
-		const onUploadProgress = (progressEvent: AxiosProgressEvent) => {
-			this.progress = Number(progressEvent.progress?.toFixed(2) ?? 0);
-		};
-
-		try {
-			const response = await RATE_LIMITER_UPLOAD.makeRequest(() =>
-				axios.post(`https://api.weebdex.org/upload/${sessionId}`, formData, {
-					headers: {
-						Authorization: `Bearer ${authToken}`
-					},
-					onUploadProgress: onUploadProgress
-				})
-			);
-
-			const data = response.data;
-
-			// API returns an array of responses, we only expect 1
-			if (!Array.isArray(data) || data.length === 0) {
-				this.status = ChapterPageStatus.FAILED;
-				this.error = `Failed to get upload session file ID: Invalid response format`;
-				this.progress = 0;
-				return;
-			}
-
-			const firstResponse = data[0];
-
-			if (!firstResponse.id || typeof firstResponse.id !== 'string') {
-				this.status = ChapterPageStatus.FAILED;
-				this.error = `Failed to get upload session file ID: Invalid response format`;
-				this.progress = 0;
-				return;
-			}
-
-			this.associatedUploadSessionFileId = firstResponse.id;
-			this.status = ChapterPageStatus.UPLOADED;
-			this.progress = 1;
-			this.error = null;
-		} catch (error) {
-			this.status = ChapterPageStatus.FAILED;
-			this.progress = 0;
-
-			if (axios.isAxiosError(error)) {
-				this.error =
-					error.response?.data?.message ||
-					error.message ||
-					`Network error: ${error.response?.statusText || 'Unknown error'}`;
-			} else if (error instanceof Error) {
-				this.error = error.message;
-			} else {
-				this.error = 'Unknown error occurred during upload';
-			}
-		}
-	}
-
 	public static async uploadBatchToSession(
 		pages: ChapterPageState[],
 		sessionId: string,

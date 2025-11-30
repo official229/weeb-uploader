@@ -65,15 +65,31 @@
 	}
 
 	function filterFilesByPath(folders: SelectedFolder[], regex: string) {
+		let filteredFolders: SelectedFolder[] = [];
+
+		const trimRegex = regex.trim();
+
 		// figure out if we have a regex even
-		if (!regex.trim()) {
-			return folders;
+		if (trimRegex === '') {
+			// If we don't, we just go over all the files and their items
+			for (const folder of folders) {
+				const files = getFilesFromFolder(folder);
+
+				if (files.length === 0) {
+					continue;
+				}
+
+				filteredFolders.push(
+					new SelectedFolder(folder.name, folder.path, files, [], folder.level, 0)
+				);
+			}
+
+			return filteredFolders;
 		}
 
-		const filterRegex = new RegExp(regex.trim());
+		const filterRegex = new RegExp(trimRegex);
 
 		// we go over all folders and filter the files by the regex
-		let filteredFolders: SelectedFolder[] = [];
 		for (const folder of folders) {
 			const files = getFilesFromFolder(folder);
 			const validFiles = files.filter((file) => filterRegex.test(file.path));

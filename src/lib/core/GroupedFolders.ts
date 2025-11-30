@@ -1,7 +1,14 @@
+export enum ChapterPageType {
+	CHAPTER_PAGE = 'CHAPTER_PAGE',
+	CHAPTER_DEFINITION_FILE = 'CHAPTER_DEFINITION_FILE',
+	UNKNOWN = 'UNKNOWN'
+}
+
 export class SelectedFile {
 	constructor(
 		public file: File,
-		public path: string
+		public path: string,
+		public type: ChapterPageType
 	) {}
 }
 
@@ -26,6 +33,32 @@ export class SelectedFolder {
  */
 function naturalCompare(a: string, b: string): number {
 	return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function createSelectedFile(file: File, path: string): SelectedFile {
+	const type = file.type.toLowerCase();
+	let detectedType = ChapterPageType.UNKNOWN;
+
+	const validImageTypes = [
+		'image/jpeg',
+		'image/jpg',
+		'image/png',
+		'image/gif',
+		'image/webp',
+		'image/bmp'
+	];
+
+	// details.json
+	// ComickInfo.xml
+	const validDefinitionFileTypes = ['application/json', 'text/xml'];
+
+	if (validImageTypes.includes(type)) {
+		detectedType = ChapterPageType.CHAPTER_PAGE;
+	} else if (validDefinitionFileTypes.includes(type)) {
+		detectedType = ChapterPageType.CHAPTER_DEFINITION_FILE;
+	}
+
+	return new SelectedFile(file, path, detectedType);
 }
 
 /**
@@ -76,12 +109,12 @@ export function groupFilesByFolders(files: File[]): SelectedFolder {
 
 		if (pathParts.length === 1) {
 			// File is at root level of the selected folder
-			rootFiles.push(new SelectedFile(file, relativePath));
+			rootFiles.push(createSelectedFile(file, relativePath));
 		} else {
 			// File is in a subfolder - get the folder path (everything except the filename)
 			const folderPath = pathParts.slice(0, -1);
 			const folder = getOrCreateFolder(folderPath);
-			folder.files.push(new SelectedFile(file, relativePath));
+			folder.files.push(createSelectedFile(file, relativePath));
 		}
 	}
 
@@ -166,7 +199,7 @@ export function groupFilesByFolders(files: File[]): SelectedFolder {
  * @param files - Array of File objects
  * @returns Array of File objects that are images
  */
-export function filterImageFiles(files: File[]): File[] {
+export function filterValidFiles(files: File[]): File[] {
 	const imageTypes = [
 		'image/jpeg',
 		'image/jpg',

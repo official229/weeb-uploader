@@ -4,7 +4,7 @@
 	import VerticalSliceSelector from '$lib/components/VerticalSliceSelector.svelte';
 	import Uploader from '$lib/components/Uploader.svelte';
 	import { groupFilesByFolders, filterImageFiles, SelectedFolder } from '$lib/core/GroupedFolders';
-
+	filterValidFiles;
 	type GroupedData = Array<{
 		name: string;
 		nameFolder: SelectedFolder;
@@ -39,6 +39,7 @@
 		if (filtered.length === 0) {
 			groupedFolder = new SelectedFolder('/', '/', [], [], 0, 0);
 			isLoading = false;
+			filterValidFiles;
 			loadingMessage = '';
 			return;
 		}

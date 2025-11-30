@@ -3,7 +3,7 @@
 	import type { ScanGroup } from '$lib/core/UploadingState.svelte';
 	import ImagePreviewGrid from './ImagePreviewGrid.svelte';
 	import GroupDropdown from './GroupDropdown.svelte';
-	import { SelectedFile } from '$lib/core/GroupedFolders';
+	import { ChapterPageType, SelectedFile } from '$lib/core/GroupedFolders';
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
 
 	interface Props {
@@ -285,7 +285,7 @@
 	{#if isExpanded}
 		<ImagePreviewGrid
 			files={chapter.pages.map((page) => ({
-				file: new SelectedFile(page.pageFile, page.pageFile.name),
+				file: new SelectedFile(page.pageFile, page.pageFile.name, ChapterPageType.UNKNOWN),
 				folder: {} as SelectedFolder
 			}))}
 			onRemove={(fileIndex, event) => onRemovePage(fileIndex, event)}
@@ -305,4 +305,3 @@
 		groupDropdownOpen = open;
 	}}
 />
-

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
 	import axios from 'axios';
 	import { getContext, onMount, setContext } from 'svelte';
@@ -121,9 +122,14 @@
 			"ory_kratos_session". That is your API token.
 		</p>
 
-		<p class="text-sm text-gray-500">
-			If you're having trouble, click on the "Tutorial & Docs" link at the top of the page.
-		</p>
+		<a
+			href={`${resolve('/docs')}#api-token-where`}
+			class="text-sm text-gray-500 hover:text-blue-500"
+		>
+			If you're having trouble, click here for the relevant tutorial & docs section (this resets
+			your progress in the uploader).
+			<span class="text-gray-500 w-4 h-4 i-mdi-arrow-top-right inline-block align-middle"></span>
+		</a>
 
 		<div class="flex flex-row gap-2 w-full items-center">
 			<label for="api-token-input">API Token:</label>
