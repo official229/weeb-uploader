@@ -33,6 +33,6 @@
 			(note that not all requests have cookies, the /check request will have one though). You will
 			see a a cookie called "ory_kratos_session". That is your API token.
 		</p>
-		<img src="/api-token-where.png" alt="API Token" class="w-full h-auto" />
+		<img src={resolve('/api-token-where.png' as any)} alt="API Token" class="w-full h-auto" />
 	</div>
 </div>
