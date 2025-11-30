@@ -106,7 +106,7 @@
 
 		const chapter = new ChapterState(
 			folderPath,
-			chapterTitle ?? definitionFile.file.name,
+			chapterTitle ?? '', // Default to empty title if none is found
 			chapterVolume,
 			chapterNumber,
 			new ChapterUploadingSeries(),
