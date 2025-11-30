@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ChapterPageType } from '$lib/core/GroupedFolders';
 	import type { ChapterPageState } from '$lib/core/UploadingState.svelte';
 
 	interface Props {
@@ -23,11 +24,17 @@
 <div class="flex flex-row gap-2 flex-wrap justify-center">
 	{#each pageStates as pageState, pageIndex}
 		<div class="relative h-48 min-w-48 rounded-lg overflow-hidden">
-			<img
-				src={createImagePreviewUrl(pageState.pageFile)}
-				alt={pageState.pageName}
-				class="w-full h-full object-cover"
-			/>
+			{#if pageState.pageType === ChapterPageType.CHAPTER_PAGE}
+				<img
+					src={createImagePreviewUrl(pageState.pageFile)}
+					alt={pageState.pageName}
+					class="w-full h-full object-cover"
+				/>
+			{:else if pageState.pageType === ChapterPageType.CHAPTER_DEFINITION_FILE}
+				<div class="w-full h-full i-mdi-file text-white"></div>
+			{:else}
+				<div class="w-full h-full i-mdi-file-question text-white"></div>
+			{/if}
 
 			{#if pageState.isDeleted}
 				<div class="absolute inset-0 bg-black/50 flex items-center justify-center">

@@ -7,6 +7,7 @@
 	import { getContext } from 'svelte';
 	import {
 		ChapterPageState,
+		ChapterPageStatus,
 		ChapterState,
 		ChapterUploadingGroup,
 		ChapterUploadingSeries
@@ -32,7 +33,18 @@
 	$effect(() => {
 		targetingState.chapterStates = selectedFolders.map((folder, index) => {
 			const pages = folder.files.map(
-				(file, pageIndex) => new ChapterPageState(file.file.name, pageIndex, file.file)
+				(file, pageIndex) =>
+					new ChapterPageState(
+						file.file.name,
+						pageIndex,
+						file.file,
+						ChapterPageStatus.NOT_STARTED,
+						0,
+						null,
+						null,
+						false,
+						file.type
+					)
 			);
 
 			return new ChapterState(

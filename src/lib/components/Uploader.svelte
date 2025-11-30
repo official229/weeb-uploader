@@ -61,7 +61,10 @@
 					fileItem.file.file,
 					ChapterPageStatus.NOT_STARTED,
 					0,
-					null
+					null,
+					null,
+					false,
+					fileItem.file.type
 				);
 			});
 

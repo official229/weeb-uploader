@@ -1,6 +1,7 @@
 import axios, { type AxiosProgressEvent } from 'axios';
 import { RATE_LIMITER_SESSION, RATE_LIMITER_UPLOAD } from './ApiWithRateLimit.svelte';
 import { cluster } from 'radashi';
+import { ChapterPageType } from './GroupedFolders';
 
 export class ScanGroup {
 	public groupId = $state<string>('');
@@ -32,6 +33,7 @@ export class ChapterPageState {
 	public error = $state<string | null>(null);
 	public associatedUploadSessionFileId = $state<string | null>(null);
 	public isDeleted = $state<boolean>(false);
+	public pageType = $state<ChapterPageType>(ChapterPageType.UNKNOWN);
 
 	public constructor(
 		pageName: string,
@@ -41,7 +43,8 @@ export class ChapterPageState {
 		progress: number = 0,
 		error: string | null = null,
 		associatedUploadSessionFileId: string | null = null,
-		isDeleted: boolean = false
+		isDeleted: boolean = false,
+		pageType: ChapterPageType = ChapterPageType.UNKNOWN
 	) {
 		this.pageName = pageName;
 		this.pageIndex = pageIndex;
@@ -51,6 +54,7 @@ export class ChapterPageState {
 		this.error = error;
 		this.associatedUploadSessionFileId = associatedUploadSessionFileId;
 		this.isDeleted = isDeleted;
+		this.pageType = pageType;
 	}
 
 	public static async uploadBatchToSession(
