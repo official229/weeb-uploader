@@ -84,7 +84,7 @@
 	<div class="flex flex-row flex-wrap gap-2 items-center">
 		{#each chapter.pages as page}
 			<div
-				class="relative h-7 min-w-7 grow-1 flex items-center justify-center border-1 rounded-md transition-all duration-300"
+				class="relative h-7 min-w-7 grow-1 flex items-center justify-center border-1 rounded-md transition-all duration-300 overflow-clip"
 				style="border-color: {getPageStatusColorValue(page.status)}"
 			>
 				<div
