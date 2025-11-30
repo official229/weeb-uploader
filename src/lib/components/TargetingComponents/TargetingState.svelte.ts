@@ -15,6 +15,31 @@ export class TargetingState {
 
 export const targetingStateContext = createContext<TargetingState>();
 
+export interface ComicInfoExtra {
+	OriginalSeries?: string;
+	Tags?: {
+		Tag?: string | string[];
+	};
+	Groups?: {
+		Group?: string | string[];
+	};
+	Timestamp?: string | number;
+}
+
+export interface ChapterComicInfoDefinitionFile {
+	ComicInfo: {
+		Series?: string;
+		Title?: string;
+		Number?: string | number;
+		Volume?: string | number;
+		ScanInformation?: string;
+		Year?: string | number;
+		Month?: string | number;
+		Day?: string | number;
+		Extra?: ComicInfoExtra;
+	};
+}
+
 export interface MangaData {
 	id: string;
 	title: string;

@@ -21,10 +21,12 @@
 		'image/png',
 		'image/gif',
 		'image/webp',
-		'application/vnd.comicbook+zip' // .cbz is a zip file
+		'application/vnd.comicbook+zip', // .cbz is a zip file
+		'application/json',
+		'text/xml' // comicinfo.xml
 	];
 
-	const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'cbz'];
+	const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'cbz', 'xml'];
 
 	/**
 	 * Extracts a .cbz file and creates virtual File objects with fake paths

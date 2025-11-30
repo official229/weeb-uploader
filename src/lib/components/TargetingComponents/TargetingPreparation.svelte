@@ -1,9 +1,17 @@
 <script lang="ts">
-	import type { SelectedFolder } from '$lib/core/GroupedFolders';
+	import {
+		ChapterPageType,
+		type SelectedFile,
+		type SelectedFolder
+	} from '$lib/core/GroupedFolders';
 	import TargetingGroupValidator from '$lib/components/TargetingComponents/TargetingGroupValidator.svelte';
 	import TargetingSeriesValidator from '$lib/components/TargetingComponents/TargetingSeriesValidator.svelte';
 	import TargetedChapterEditor from './TargetedChapterEditor.svelte';
-	import { TargetingState, targetingStateContext } from './TargetingState.svelte';
+	import {
+		TargetingState,
+		targetingStateContext,
+		type ChapterComicInfoDefinitionFile
+	} from './TargetingState.svelte';
 	import { getContext } from 'svelte';
 	import {
 		ChapterPageState,
@@ -13,6 +21,7 @@
 		ChapterUploadingSeries
 	} from '$lib/core/UploadingState.svelte';
 	import TargetingBatchEdit from './TargetingBatchEdit.svelte';
+	import { XMLParser } from 'fast-xml-parser';
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
@@ -30,33 +39,134 @@
 
 	let isAllready = $derived.by(() => targetingState.seriesId);
 
-	$effect(() => {
-		targetingState.chapterStates = selectedFolders.map((folder, index) => {
-			const pages = folder.files.map(
-				(file, pageIndex) =>
-					new ChapterPageState(
-						file.file.name,
-						pageIndex,
-						file.file,
-						ChapterPageStatus.NOT_STARTED,
-						0,
-						null,
-						null,
-						false,
-						file.type
-					)
-			);
+	async function createChapterFromDefinitionFile(
+		definitionFile: SelectedFile,
+		remainingFiles: SelectedFile[],
+		folderPath: string
+	): Promise<ChapterState> {
+		let chapterTitle: string | null = null;
+		let chapterNumber: string | null = null;
+		let chapterVolume: string | null = null;
 
-			return new ChapterState(
-				folder.path,
-				folder.name,
+		// Check if this is a ComicInfo.xml file
+		const isComicInfo = definitionFile.file.name.toLowerCase() === 'comicinfo.xml';
+
+		if (isComicInfo) {
+			try {
+				const xmlText = await definitionFile.file.text();
+				const parser = new XMLParser({
+					ignoreAttributes: false,
+					attributeNamePrefix: '@_',
+					parseAttributeValue: true,
+					trimValues: true
+				});
+
+				const parsed = parser.parse(xmlText) as ChapterComicInfoDefinitionFile;
+
+				if (parsed.ComicInfo) {
+					const comicInfo = parsed.ComicInfo;
+
+					// Extract chapter title
+					if (comicInfo.Title) {
+						chapterTitle = comicInfo.Title;
+					}
+
+					// Extract chapter number
+					if (comicInfo.Number !== undefined && comicInfo.Number !== null) {
+						chapterNumber = String(comicInfo.Number);
+					}
+
+					// Extract volume
+					if (comicInfo.Volume !== undefined && comicInfo.Volume !== null) {
+						chapterVolume = String(comicInfo.Volume);
+					}
+				}
+			} catch (error) {
+				console.error('Failed to parse ComicInfo.xml:', error);
+				// Continue with default values if parsing fails
+			}
+		}
+
+		// Create pages from remaining files
+		const pages = remainingFiles.map((file, pageIndex) => {
+			const isFileAnImage = file.type === ChapterPageType.CHAPTER_PAGE;
+
+			return new ChapterPageState(
+				file.file.name,
+				pageIndex,
+				file.file,
+				ChapterPageStatus.NOT_STARTED,
+				0,
 				null,
-				index.toString(),
-				new ChapterUploadingSeries(),
-				new ChapterUploadingGroup(),
-				pages
+				null,
+				!isFileAnImage,
+				file.type
 			);
 		});
+
+		const chapter = new ChapterState(
+			folderPath,
+			chapterTitle ?? definitionFile.file.name,
+			chapterVolume,
+			chapterNumber,
+			new ChapterUploadingSeries(),
+			new ChapterUploadingGroup(),
+			pages
+		);
+
+		return chapter;
+	}
+
+	$effect(() => {
+		(async () => {
+			const chapters = await Promise.all(
+				selectedFolders.map(async (folder, index) => {
+					// If a folder contains a single definition file, we can use it to construct a chapter
+					const definitionFiles = folder.files.filter(
+						(file) => file.type === ChapterPageType.CHAPTER_DEFINITION_FILE
+					);
+					if (definitionFiles.length === 1) {
+						const remainingFiles = folder.files.filter(
+							(file) => file.type !== ChapterPageType.CHAPTER_DEFINITION_FILE
+						);
+						return await createChapterFromDefinitionFile(
+							definitionFiles[0],
+							remainingFiles,
+							folder.path
+						);
+					}
+
+					// For everything else, we just create a chapter from the files (and pretend unknown files are deleted)
+					const pages = folder.files.map((file, pageIndex) => {
+						const isFileAnImage = file.type === ChapterPageType.CHAPTER_PAGE;
+
+						return new ChapterPageState(
+							file.file.name,
+							pageIndex,
+							file.file,
+							ChapterPageStatus.NOT_STARTED,
+							0,
+							null,
+							null,
+							!isFileAnImage,
+							file.type
+						);
+					});
+
+					return new ChapterState(
+						folder.path,
+						folder.name,
+						null,
+						index.toString(),
+						new ChapterUploadingSeries(),
+						new ChapterUploadingGroup(),
+						pages
+					);
+				})
+			);
+
+			targetingState.chapterStates = chapters;
+		})();
 	});
 
 	function sortChapters(chapters: ChapterState[]): ChapterState[] {

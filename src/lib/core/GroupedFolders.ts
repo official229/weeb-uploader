@@ -52,9 +52,14 @@ function createSelectedFile(file: File, path: string): SelectedFile {
 	// ComickInfo.xml
 	const validDefinitionFileTypes = ['application/json', 'text/xml'];
 
+	const predefinedDefinitionFileTypes = ['comicinfo.xml', 'details.json'];
+
 	if (validImageTypes.includes(type)) {
 		detectedType = ChapterPageType.CHAPTER_PAGE;
-	} else if (validDefinitionFileTypes.includes(type)) {
+	} else if (
+		validDefinitionFileTypes.includes(type) ||
+		predefinedDefinitionFileTypes.includes(file.name.toLowerCase())
+	) {
 		detectedType = ChapterPageType.CHAPTER_DEFINITION_FILE;
 	}
 
