@@ -11,9 +11,7 @@
 </script>
 
 <div class="container my-5 mx-auto flex flex-col gap-5">
-	<a href={resolve('/improved')} class="text-blue-500 hover:text-blue-600">
-		Back to Uploader Improved
-	</a>
+	<a href={resolve('/')} class="text-blue-500 hover:text-blue-600"> Back to Uploader Improved </a>
 
 	<div class="flex flex-col gap-2" id="api-token-where">
 		<a
@@ -27,12 +25,17 @@
 
 		<p>
 			You can find your API token by opening up the developer tools (F12 on keyboard) in your
-			browser and navigating to the "Network" tab. Then, refresh the page and click on the "XHR" tab
-			within the "Network" tab. You will see a list of requests. Clicking on one should open up a
-			panel with the request details. Click on the "Cookies" tab within the request details panel
-			(note that not all requests have cookies, the /check request will have one though). You will
-			see a a cookie called "ory_kratos_session". That is your API token.
+			browser and following the steps below:
 		</p>
-		<img src={resolve('/api-token-where.png' as any)} alt="API Token" class="w-full h-auto" />
+		<div class="flex flex-row gap-2">
+			<div class="flex flex-col gap-2 w-1/2 items-center">
+				<p>Firefox</p>
+				<img src={resolve('/token-firefox.png' as any)} alt="API Token" class="h-auto" />
+			</div>
+			<div class="flex flex-col gap-2 w-1/2 items-center">
+				<p>Chromium</p>
+				<img src={resolve('/token-chromium.png' as any)} alt="API Token" class="h-auto" />
+			</div>
+		</div>
 	</div>
 </div>

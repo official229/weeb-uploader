@@ -1,125 +1,157 @@
 <script lang="ts">
-	import FolderPicker from '$lib/components/FolderPicker.svelte';
-	import FolderView from '$lib/components/FolderView.svelte';
-	import VerticalSliceSelector from '$lib/components/VerticalSliceSelector.svelte';
-	import Uploader from '$lib/components/Uploader.svelte';
-	import { groupFilesByFolders, filterValidFiles, SelectedFolder } from '$lib/core/GroupedFolders';
-
-	type GroupedData = Array<{
-		name: string;
-		nameFolder: SelectedFolder;
-		files: Array<{ file: SelectedFolder['files'][0]; folder: SelectedFolder }>;
-	}>;
+	import FolderSelector from '$lib/components/FolderSelectorComponents/FolderSelector.svelte';
+	import TargetingAuthValidator from '$lib/components/TargetingComponents/TargetingAuthValidator.svelte';
+	import TargetingPreparation from '$lib/components/TargetingComponents/TargetingPreparation.svelte';
+	import {
+		TargetingState,
+		targetingStateContext
+	} from '$lib/components/TargetingComponents/TargetingState.svelte';
+	import UploaderOrchestrator from '$lib/components/UploaderComponents/UploaderOrchestrator.svelte';
+	import VerticalSlice from '$lib/components/VerticalSlicerComponents/VerticalSlice.svelte';
+	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
+	import type { SelectedFolder } from '$lib/core/GroupedFolders';
+	import { getContext, setContext } from 'svelte';
+	import { resolve } from '$app/paths';
 
 	let selectedFiles = $state<File[] | null>(null);
-	let isLoading = $state(false);
-	let imageFiles = $state<File[]>([]);
-	let groupedFolder = $state<SelectedFolder>(new SelectedFolder('/', '/', [], [], 0, 0));
-	let loadingMessage = $state('');
-	let showUploader = $state(false);
-	let uploaderGroups = $state<GroupedData>([]);
+	let finalizedFolderSelection = $state<SelectedFolder[] | null>(null);
 
-	// Process files: filter images, then group by folders
-	$effect(() => {
-		if (!selectedFiles) {
-			imageFiles = [];
-			groupedFolder = new SelectedFolder('/', '/', [], [], 0, 0);
-			return;
+	setContext(apiAuthContext, new ApiAuthContext());
+	setContext(targetingStateContext, new TargetingState());
+
+	enum EDITOR_STATE {
+		PICKING_FOLDER = 'PICKING_FOLDER',
+		SELECTING_FOLDERS = 'SELECTING_FOLDERS',
+		EDITING_CHAPTERS = 'EDITING_CHAPTERS',
+		UPLOADING = 'UPLOADING',
+		FINISHED = 'FINISHED'
+	}
+
+	let working = $state(false);
+	let editorState = $state<EDITOR_STATE>(EDITOR_STATE.PICKING_FOLDER);
+	let disableSwitching = $derived(editorState === EDITOR_STATE.UPLOADING && working);
+	let authSettingsVisible = $derived(
+		editorState !== EDITOR_STATE.UPLOADING && editorState !== EDITOR_STATE.EDITING_CHAPTERS
+	);
+
+	function switchEditorState(state: EDITOR_STATE) {
+		if (selectedFiles) {
+			editorState = state;
 		}
+	}
 
-		// Step 1: Filter image files
-		const filesToProcess = selectedFiles; // Capture for closure
-		isLoading = true;
-		loadingMessage = `Filtering image files from ${filesToProcess.length} total file${filesToProcess.length !== 1 ? 's' : ''}...`;
+	function onFolderSelectionDone() {
+		editorState = EDITOR_STATE.SELECTING_FOLDERS;
+	}
 
-		const filtered = filterValidFiles(filesToProcess);
-		imageFiles = filtered;
+	function onFolderSelectionSliceDone() {
+		editorState = EDITOR_STATE.EDITING_CHAPTERS;
+	}
 
-		// Step 2: Group filtered images by folders
-		if (filtered.length === 0) {
-			groupedFolder = new SelectedFolder('/', '/', [], [], 0, 0);
-			isLoading = false;
-			filterValidFiles;
-			loadingMessage = '';
-			return;
-		}
+	function onChapterEditingDone() {
+		editorState = EDITOR_STATE.UPLOADING;
+	}
 
-		loadingMessage = `Grouping ${filtered.length} image file${filtered.length !== 1 ? 's' : ''} by folders...`;
-
-		const grouped = groupFilesByFolders(filtered);
-		console.log('Grouped folders:', grouped);
-		groupedFolder = grouped;
-		isLoading = false;
-		loadingMessage = '';
-	});
+	function onUploadingDone() {
+		editorState = EDITOR_STATE.FINISHED;
+	}
 </script>
 
-<div class="container mx-auto p-6 space-y-6">
-	<h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Batch Image Uploader</h1>
+<div class="container mx-auto p-6 flex flex-col gap-6">
+	<h1 class="text-xl font-bold">Uploader Improved</h1>
 
-	<FolderPicker bind:files={selectedFiles} />
+	<a href={resolve('/docs')} class="text-blue-500 hover:text-blue-600">Tutorial & Docs</a>
 
-	{#if selectedFiles && !isLoading}
-		<div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-			<p class="text-sm text-gray-700 dark:text-gray-300">
-				Total files selected: {selectedFiles.length} • Image files: {imageFiles.length} • Non-image files
-				filtered: {selectedFiles.length - imageFiles.length}
-			</p>
-		</div>
+	{#if authSettingsVisible}
+		<TargetingAuthValidator />
 	{/if}
 
-	{#if isLoading}
-		<div
-			class="flex flex-col items-center justify-center p-12 bg-gray-50 dark:bg-gray-800 rounded-lg"
+	<div class="flex flex-row gap-1">
+		<button
+			type="button"
+			class={{
+				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
+				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.PICKING_FOLDER,
+				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.PICKING_FOLDER
+			}}
+			disabled={disableSwitching}
+			onclick={() => switchEditorState(EDITOR_STATE.PICKING_FOLDER)}
 		>
-			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-			<p class="text-gray-700 dark:text-gray-300 font-medium">{loadingMessage}</p>
-		</div>
-	{:else if groupedFolder && (groupedFolder.files.length > 0 || groupedFolder.folders.length > 0)}
-		{#if showUploader}
-			<div class="space-y-4">
-				<div class="flex items-center justify-between">
-					<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Upload Groups</h2>
-					<button
-						type="button"
-						onclick={() => (showUploader = false)}
-						class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-					>
-						Back to Selector
-					</button>
-				</div>
-				<Uploader groups={uploaderGroups} rootFolder={groupedFolder} />
-			</div>
-		{:else}
-			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<!-- Folder Tree View -->
-				<div>
-					<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-						Folder Structure
-					</h2>
-					<FolderView folder={groupedFolder} />
-				</div>
+			Pick Folder
+		</button>
 
-				<!-- Vertical Slice Selector -->
-				<div>
-					<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-						Vertical Slice Selector
-					</h2>
-					<VerticalSliceSelector
-						folder={groupedFolder}
-						onProcess={(groups) => {
-							uploaderGroups = groups;
-							showUploader = true;
-						}}
-					/>
-				</div>
-			</div>
-		{/if}
-	{:else if selectedFiles && imageFiles.length === 0}
-		<div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-			<p class="text-yellow-800 dark:text-yellow-200">
-				No image files found in the selected folder. Please select a folder containing image files.
-			</p>
-		</div>
+		<div class="i-mdi-menu-right h-10"></div>
+
+		<button
+			type="button"
+			class={{
+				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
+				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.SELECTING_FOLDERS,
+				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.SELECTING_FOLDERS
+			}}
+			disabled={!selectedFiles || disableSwitching}
+			onclick={() => switchEditorState(EDITOR_STATE.SELECTING_FOLDERS)}>Select Folders</button
+		>
+
+		<div class="i-mdi-menu-right h-10"></div>
+
+		<button
+			type="button"
+			class={{
+				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
+				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.EDITING_CHAPTERS,
+				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.EDITING_CHAPTERS
+			}}
+			disabled={!finalizedFolderSelection || disableSwitching}
+			onclick={() => switchEditorState(EDITOR_STATE.EDITING_CHAPTERS)}>Edit Chapters</button
+		>
+
+		<div class="i-mdi-menu-right h-10"></div>
+
+		<button
+			type="button"
+			class={{
+				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
+				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.UPLOADING,
+				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.UPLOADING
+			}}
+			disabled={!finalizedFolderSelection || disableSwitching}
+			onclick={() => switchEditorState(EDITOR_STATE.UPLOADING)}>Upload</button
+		>
+
+		<div class="i-mdi-menu-right h-10"></div>
+
+		<button
+			type="button"
+			class={{
+				'p-2 rounded-md': true,
+				'bg-gray-300': editorState !== EDITOR_STATE.FINISHED,
+				'bg-blue-300': editorState === EDITOR_STATE.FINISHED
+			}}
+			disabled={true}>Finished</button
+		>
+	</div>
+
+	{#if editorState === EDITOR_STATE.PICKING_FOLDER}
+		<FolderSelector
+			onDone={onFolderSelectionDone}
+			bind:selectedFiles
+			class="w-full max-w-md mx-auto"
+		/>
+	{:else if editorState === EDITOR_STATE.SELECTING_FOLDERS}
+		<VerticalSlice
+			onDone={onFolderSelectionSliceDone}
+			{selectedFiles}
+			bind:finalizedFolderSelection
+		/>
+	{:else if editorState === EDITOR_STATE.EDITING_CHAPTERS && finalizedFolderSelection}
+		<TargetingPreparation
+			selectedFolders={finalizedFolderSelection}
+			onDone={onChapterEditingDone}
+		/>
+	{:else if editorState === EDITOR_STATE.UPLOADING}
+		<UploaderOrchestrator onDone={onUploadingDone} bind:busy={working} />
+	{:else if editorState === EDITOR_STATE.FINISHED}
+		<p>todo: finished</p>
 	{/if}
 </div>
