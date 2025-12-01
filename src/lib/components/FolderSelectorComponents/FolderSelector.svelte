@@ -14,6 +14,8 @@
 	}: Props = $props();
 
 	let inputElementRef: HTMLInputElement | null = $state(null);
+	let isExtracting = $state(false);
+	let currentlyProcessingFile = $state<string | null>(null);
 
 	const allowedMimeTypes = [
 		'image/jpeg',
@@ -33,6 +35,7 @@
 	 * to simulate a subfolder structure
 	 */
 	async function extractCbzFile(cbzFile: File): Promise<File[]> {
+		console.log('Extracting .cbz file:', cbzFile.name);
 		const zipReader = new ZipReader(new BlobReader(cbzFile));
 		const entries = await zipReader.getEntries();
 		const extractedFiles: File[] = [];
@@ -42,10 +45,14 @@
 		const originalPath = cbzFile.webkitRelativePath || cbzFile.name;
 
 		for (const entry of entries) {
-			// Skip directories
+			// Skip directory entries (we only process files, not empty directories)
+			// Note: File entries can have directory paths in their filenames (e.g., "chapter1/page1.png")
+			// which we preserve in the virtual path below
 			if (!entry.filename || entry.directory) {
 				continue;
 			}
+
+			currentlyProcessingFile = entry.filename;
 
 			// Check if the entry is an image file
 			const entryExtension = entry.filename.split('.').pop()?.toLowerCase();
@@ -53,33 +60,50 @@
 				continue;
 			}
 
-			// Extract the file content
-			const blob = await entry.getData(new BlobWriter());
-			const fileName = entry.filename.split('/').pop() || entry.filename;
+			// Extract the file content with error handling for problematic entries
+			try {
+				const arrayBuffer = await entry.arrayBuffer();
+				// Create a copy of the ArrayBuffer to prevent blob detachment issues
+				// This ensures the blob remains valid even if the original buffer is released
+				const arrayBufferCopy = arrayBuffer.slice(0);
+				// Get MIME type from file extension (ArrayBuffer doesn't contain MIME type info)
+				const mimeType = getMimeTypeFromExtension(entryExtension);
+				const blob = new Blob([arrayBufferCopy], { type: mimeType });
 
-			// Create a File object with a virtual path
-			// The path will be: {originalPath}/{cbzBaseName}/{fileName}
-			// This creates a virtual subfolder structure
-			const virtualPath = originalPath.includes('/')
-				? `${originalPath.split('/').slice(0, -1).join('/')}/${cbzBaseName}/${fileName}`
-				: `${cbzBaseName}/${fileName}`;
+				// Preserve the full path from the archive, including directory structure
+				const entryPath = entry.filename;
+				const fileName = entryPath.split('/').pop() ?? entryPath;
 
-			const virtualFile = new File([blob], fileName, {
-				type: blob.type || getMimeTypeFromExtension(entryExtension)
-			});
+				// Create a File object with a virtual path
+				// The path will be: {originalPath}/{cbzBaseName}/{entryPath}
+				// This preserves the directory structure inside the archive
+				// entryPath already includes any subdirectories (e.g., "chapter1/page1.png")
+				const virtualPath = originalPath.includes('/')
+					? `${originalPath.split('/').slice(0, -1).join('/')}/${cbzBaseName}/${entryPath}`
+					: `${cbzBaseName}/${entryPath}`;
 
-			// Set the webkitRelativePath to create the virtual folder structure
-			Object.defineProperty(virtualFile, 'webkitRelativePath', {
-				value: virtualPath,
-				writable: false,
-				enumerable: true,
-				configurable: true
-			});
+				const virtualFile = new File([blob], fileName, {
+					type: blob.type || getMimeTypeFromExtension(entryExtension)
+				});
 
-			extractedFiles.push(virtualFile);
+				// Set the webkitRelativePath to create the virtual folder structure
+				Object.defineProperty(virtualFile, 'webkitRelativePath', {
+					value: virtualPath,
+					writable: false,
+					enumerable: true,
+					configurable: true
+				});
+
+				extractedFiles.push(virtualFile);
+			} catch (error) {
+				console.error(`Error extracting entry ${entry.filename}:`, error);
+				// Continue processing other entries even if one fails
+			}
 		}
 
 		await zipReader.close();
+		currentlyProcessingFile = null;
+
 		return extractedFiles;
 	}
 
@@ -98,6 +122,8 @@
 	}
 
 	async function handleChangeFiles(event: Event) {
+		isExtracting = true;
+
 		const input = event.target as HTMLInputElement;
 		const files = Array.from(input.files ?? []);
 
@@ -133,6 +159,7 @@
 
 		console.log('Selected files:', selectedFiles);
 
+		isExtracting = false;
 		onDone();
 	}
 
@@ -141,17 +168,31 @@
 	}
 </script>
 
-<button
-	class="flex flex-col justify-center items-center clickable-hint b-2 rounded-md p-4 {className}"
-	onclick={onClick}
->
-	<h1 class="font-bold">Folder Selector</h1>
-	<input
-		class="hidden"
-		bind:this={inputElementRef}
-		type="file"
-		webkitdirectory={true}
-		multiple={true}
-		onchange={handleChangeFiles}
-	/>
-</button>
+<div class="flex flex-col justify-center items-center gap-4">
+	<button
+		class="flex flex-col justify-center items-center clickable-hint b-2 rounded-md p-4 {className} disabled:opacity-50 disabled:cursor-not-allowed"
+		onclick={onClick}
+		disabled={isExtracting}
+	>
+		<h1 class="font-bold">Folder Selector</h1>
+		<input
+			class="hidden"
+			bind:this={inputElementRef}
+			type="file"
+			webkitdirectory={true}
+			multiple={true}
+			onchange={handleChangeFiles}
+		/>
+	</button>
+
+	{#if isExtracting}
+		<div class="flex flex-col justify-center items-center gap-2">
+			<div class="animate-spin rounded-full h-8 w-8 outline-dotted outline-5"></div>
+			<p class="text-sm text-gray-500">Processing files...</p>
+
+			{#if currentlyProcessingFile}
+				<p class="text-sm text-gray-500">{currentlyProcessingFile}</p>
+			{/if}
+		</div>
+	{/if}
+</div>

@@ -19,6 +19,7 @@
 	let chapterNameLevel = $state<string>('1');
 	let fileLevel = $state<string>('1');
 	let filePathFilter = $state<string>('');
+	let isRegexCaseSensitive = $state<boolean>(false);
 
 	$effect(() => {
 		if (chapterNameLevel && fileLevel && parseInt(fileLevel) < parseInt(chapterNameLevel)) {
@@ -87,7 +88,7 @@
 			return filteredFolders;
 		}
 
-		const filterRegex = new RegExp(trimRegex);
+		const filterRegex = new RegExp(trimRegex, isRegexCaseSensitive ? 'g' : 'gi');
 
 		// we go over all folders and filter the files by the regex
 		for (const folder of folders) {
@@ -106,6 +107,14 @@
 		}
 
 		return filteredFolders;
+	}
+
+	function setExampleExclusionRegex() {
+		filePathFilter = '^(?!.*filename).*$';
+	}
+
+	function setExampleInclusionRegex() {
+		filePathFilter = 'filename';
 	}
 </script>
 
@@ -158,11 +167,36 @@
 				a subset of them.
 			</p>
 		</div>
+		<div class="flex flex-row gap-2">
+			<button
+				onclick={setExampleExclusionRegex}
+				type="button"
+				class="px-2 py-1 clickable-hint rounded-md"
+			>
+				Set Example Exclusion Regex
+			</button>
+			<button
+				onclick={setExampleInclusionRegex}
+				type="button"
+				class="px-2 py-1 clickable-hint rounded-md"
+			>
+				Set Example Inclusion Regex
+			</button>
+			<div class="flex flex-row gap-2 items-center">
+				<input
+					type="checkbox"
+					bind:checked={isRegexCaseSensitive}
+					class="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+				/>
+				<label for="isRegexCaseSensitive" class="text-sm text-gray-500">Case Sensitive</label>
+			</div>
+		</div>
+
 		<input
 			type="text"
 			bind:value={filePathFilter}
 			placeholder="Filter files by path regex..."
-			class="w-full px-2 py-1 border border-gray-300 rounded-md"
+			class="bg-white w-full px-2 py-1 border border-gray-300 rounded-md"
 		/>
 	</div>
 </div>
