@@ -1,9 +1,5 @@
 <script lang="ts">
-	import {
-		ChapterPageType,
-		type SelectedFile,
-		type SelectedFolder
-	} from '$lib/core/GroupedFolders';
+	import { ChapterPageType, SelectedFolder, type SelectedFile } from '$lib/core/GroupedFolders';
 	import TargetingGroupValidator from '$lib/components/TargetingComponents/TargetingGroupValidator.svelte';
 	import TargetingSeriesValidator from '$lib/components/TargetingComponents/TargetingSeriesValidator.svelte';
 	import TargetedChapterEditor from './TargetedChapterEditor.svelte';
@@ -17,11 +13,13 @@
 		ChapterPageState,
 		ChapterPageStatus,
 		ChapterState,
+		ChapterStatus,
 		ChapterUploadingGroup,
 		ChapterUploadingSeries
 	} from '$lib/core/UploadingState.svelte';
 	import TargetingBatchEdit from './TargetingBatchEdit.svelte';
 	import { XMLParser } from 'fast-xml-parser';
+	import TargetingGroupSearch from './TargetingGroupSearch.svelte';
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
@@ -111,7 +109,12 @@
 			chapterNumber,
 			new ChapterUploadingSeries(),
 			new ChapterUploadingGroup(),
-			pages
+			pages,
+			ChapterStatus.NOT_STARTED,
+			0,
+			null,
+			null,
+			new SelectedFolder(folderPath, folderPath, [definitionFile, ...remainingFiles], [], 0, 0)
 		);
 
 		return chapter;
@@ -246,6 +249,11 @@
 	<div class="flex flex-col gap-2">
 		<h2 class="text-xl font-semibold">Group Preparation</h2>
 		<TargetingGroupValidator />
+	</div>
+
+	<div class="flex flex-col gap-2">
+		<h2 class="text-xl font-semibold">Group Search</h2>
+		<TargetingGroupSearch />
 	</div>
 
 	<div class="flex flex-col gap-2">

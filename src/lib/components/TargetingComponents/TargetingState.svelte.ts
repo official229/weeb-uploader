@@ -1,4 +1,6 @@
+import { RATE_LIMITER_GLOBAL } from '$lib/core/ApiWithRateLimit.svelte';
 import type { ChapterState, ScanGroup } from '$lib/core/UploadingState.svelte';
+import axios from 'axios';
 import { createContext } from 'svelte';
 
 export class TargetingState {
@@ -83,4 +85,27 @@ export interface GroupData {
 			version?: number;
 		}>;
 	};
+}
+
+export interface GroupsResponse {
+	data: GroupData[];
+	limit: number;
+	page: number;
+	total: number;
+}
+
+export async function searchGroups(query: string) {
+	return await RATE_LIMITER_GLOBAL.makeRequest(async () => {
+		const response = await axios.get(`https://api.weebdex.org/group`, {
+			params: {
+				name: query
+			}
+		});
+
+		if (response.status !== 200) {
+			throw new Error(`Failed to search groups: ${response.status} ${response.statusText}`);
+		}
+
+		return response.data as GroupsResponse;
+	});
 }

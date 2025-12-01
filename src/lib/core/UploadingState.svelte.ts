@@ -1,7 +1,7 @@
 import axios, { type AxiosProgressEvent } from 'axios';
 import { RATE_LIMITER_SESSION, RATE_LIMITER_UPLOAD } from './ApiWithRateLimit.svelte';
 import { cluster } from 'radashi';
-import { ChapterPageType } from './GroupedFolders';
+import { ChapterPageType, SelectedFolder } from './GroupedFolders';
 
 export class ScanGroup {
 	public groupId = $state<string>('');
@@ -165,6 +165,7 @@ export class ChapterState {
 	public error = $state<string | null>(null);
 
 	public associatedUploadSessionId = $state<string | null>(null);
+	public originalSelectedFolder = $state<SelectedFolder | null>(null);
 
 	public constructor(
 		originalFolderPath: string | null,
@@ -177,7 +178,8 @@ export class ChapterState {
 		status: ChapterStatus = ChapterStatus.NOT_STARTED,
 		progress: number = 0,
 		error: string | null = null,
-		associatedUploadSessionId: string | null = null
+		associatedUploadSessionId: string | null = null,
+		originalSelectedFolder: SelectedFolder | null = null
 	) {
 		this.originalFolderPath = originalFolderPath;
 		this.chapterTitle = chapterTitle;
@@ -190,6 +192,7 @@ export class ChapterState {
 		this.progress = progress;
 		this.error = error;
 		this.associatedUploadSessionId = associatedUploadSessionId;
+		this.originalSelectedFolder = originalSelectedFolder;
 	}
 
 	public checkProgress(): void {
