@@ -47,6 +47,29 @@
 		validationError = null;
 	}
 
+	$effect(() => {
+		if (targetingState.seriesId) {
+			loadSeriesData(targetingState.seriesId);
+		}
+	});
+
+	async function loadSeriesData(id: string) {
+		isValidating = true;
+		try {
+			const response = await fetch(`https://api.weebdex.org/manga/${id}`);
+			if (response.ok) {
+				const data = await response.json();
+				seriesData = data;
+			} else {
+				validationError = `Failed to load series data: ${response.status} ${response.statusText}`;
+			}
+		} catch (error) {
+			validationError = error instanceof Error ? error.message : 'Failed to load series data';
+		} finally {
+			isValidating = false;
+		}
+	}
+
 	async function validateSeries() {
 		if (!inputValue.trim()) {
 			validationError = 'Please enter a series ID';

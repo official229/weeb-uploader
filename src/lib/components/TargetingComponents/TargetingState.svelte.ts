@@ -94,6 +94,13 @@ export interface GroupsResponse {
 	total: number;
 }
 
+export interface MangaResponse {
+	data: MangaData[];
+	limit: number;
+	page: number;
+	total: number;
+}
+
 export async function searchGroups(query: string) {
 	return await RATE_LIMITER_GLOBAL.makeRequest(async () => {
 		const response = await axios.get(`https://api.weebdex.org/group`, {
@@ -107,5 +114,24 @@ export async function searchGroups(query: string) {
 		}
 
 		return response.data as GroupsResponse;
+	});
+}
+
+export async function searchManga(query: string) {
+	return await RATE_LIMITER_GLOBAL.makeRequest(async () => {
+		const response = await axios.get(`https://api.weebdex.org/manga`, {
+			params: {
+				title: query,
+				limit: 20,
+				sort: 'relevance',
+				page: 1
+			}
+		});
+
+		if (response.status !== 200) {
+			throw new Error(`Failed to search manga: ${response.status} ${response.statusText}`);
+		}
+
+		return response.data as MangaResponse;
 	});
 }

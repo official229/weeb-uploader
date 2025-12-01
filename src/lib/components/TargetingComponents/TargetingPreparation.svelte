@@ -20,6 +20,7 @@
 	import TargetingBatchEdit from './TargetingBatchEdit.svelte';
 	import { XMLParser } from 'fast-xml-parser';
 	import TargetingGroupSearch from './TargetingGroupSearch.svelte';
+	import TargetingSeriesSearch from './TargetingSeriesSearch.svelte';
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
@@ -244,6 +245,11 @@
 	<div class="flex flex-col gap-2">
 		<h2 class="text-xl font-semibold">Targeting Preparation (Required)</h2>
 		<TargetingSeriesValidator />
+	</div>
+
+	<div class="flex flex-col gap-2">
+		<h2 class="text-xl font-semibold">Series Preparation</h2>
+		<TargetingSeriesSearch />
 	</div>
 
 	<div class="flex flex-col gap-2">

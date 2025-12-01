@@ -36,10 +36,15 @@
 	}
 
 	function addGroup(id: string, name: string) {
+		if (targetingState.availableScanGroups.find((g) => g.groupId === id)) {
+			return;
+		}
 		const newGroup = new ScanGroup();
 		newGroup.groupId = id;
 		newGroup.groupName = name;
 		targetingState.availableScanGroups = [...targetingState.availableScanGroups, newGroup];
+		searchResults = [];
+		searchQuery = '';
 	}
 </script>
 
