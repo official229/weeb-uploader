@@ -245,20 +245,12 @@
 	<div class="flex flex-col gap-2">
 		<h2 class="text-xl font-semibold">Targeting Preparation (Required)</h2>
 		<TargetingSeriesValidator />
-	</div>
-
-	<div class="flex flex-col gap-2">
-		<h2 class="text-xl font-semibold">Series Preparation</h2>
 		<TargetingSeriesSearch />
 	</div>
 
 	<div class="flex flex-col gap-2">
 		<h2 class="text-xl font-semibold">Group Preparation</h2>
 		<TargetingGroupValidator />
-	</div>
-
-	<div class="flex flex-col gap-2">
-		<h2 class="text-xl font-semibold">Group Search</h2>
 		<TargetingGroupSearch />
 	</div>
 

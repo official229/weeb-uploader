@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
+	import * as zip from '@zip.js/zip.js';
+
+	// Configure zip.js to disable web workers
+	// This may help avoid the outputSize error that occurs when workers aren't properly initialized
+	zip.configure({
+		useWebWorkers: false
+	});
 
 	interface Props {
 		selectedFiles: File[] | null;
@@ -36,7 +42,7 @@
 	 */
 	async function extractCbzFile(cbzFile: File): Promise<File[]> {
 		console.log('Extracting .cbz file:', cbzFile.name);
-		const zipReader = new ZipReader(new BlobReader(cbzFile));
+		const zipReader = new zip.ZipReader(new zip.BlobReader(cbzFile));
 		const entries = await zipReader.getEntries();
 		const extractedFiles: File[] = [];
 
@@ -61,44 +67,47 @@
 			}
 
 			// Extract the file content with error handling for problematic entries
-			try {
-				const arrayBuffer = await entry.arrayBuffer();
-				// Create a copy of the ArrayBuffer to prevent blob detachment issues
-				// This ensures the blob remains valid even if the original buffer is released
-				const arrayBufferCopy = arrayBuffer.slice(0);
-				// Get MIME type from file extension (ArrayBuffer doesn't contain MIME type info)
+
+			const entryStream = new TransformStream();
+			const blobPromise = new Response(entryStream.readable).blob();
+
+			// Write the entry data to the stream
+			await entry.getData(entryStream.writable);
+
+			// Get the blob from the stream
+			let blob = await blobPromise;
+
+			// Ensure blob has correct MIME type
+			if (!blob.type) {
 				const mimeType = getMimeTypeFromExtension(entryExtension);
-				const blob = new Blob([arrayBufferCopy], { type: mimeType });
-
-				// Preserve the full path from the archive, including directory structure
-				const entryPath = entry.filename;
-				const fileName = entryPath.split('/').pop() ?? entryPath;
-
-				// Create a File object with a virtual path
-				// The path will be: {originalPath}/{cbzBaseName}/{entryPath}
-				// This preserves the directory structure inside the archive
-				// entryPath already includes any subdirectories (e.g., "chapter1/page1.png")
-				const virtualPath = originalPath.includes('/')
-					? `${originalPath.split('/').slice(0, -1).join('/')}/${cbzBaseName}/${entryPath}`
-					: `${cbzBaseName}/${entryPath}`;
-
-				const virtualFile = new File([blob], fileName, {
-					type: blob.type || getMimeTypeFromExtension(entryExtension)
-				});
-
-				// Set the webkitRelativePath to create the virtual folder structure
-				Object.defineProperty(virtualFile, 'webkitRelativePath', {
-					value: virtualPath,
-					writable: false,
-					enumerable: true,
-					configurable: true
-				});
-
-				extractedFiles.push(virtualFile);
-			} catch (error) {
-				console.error(`Error extracting entry ${entry.filename}:`, error);
-				// Continue processing other entries even if one fails
+				blob = new Blob([blob], { type: mimeType });
 			}
+
+			// Preserve the full path from the archive, including directory structure
+			const entryPath = entry.filename;
+			const fileName = entryPath.split('/').pop() ?? entryPath;
+
+			// Create a File object with a virtual path
+			// The path will be: {originalPath}/{cbzBaseName}/{entryPath}
+			// This preserves the directory structure inside the archive
+			// entryPath already includes any subdirectories (e.g., "chapter1/page1.png")
+			const virtualPath = originalPath.includes('/')
+				? `${originalPath.split('/').slice(0, -1).join('/')}/${cbzBaseName}/${entryPath}`
+				: `${cbzBaseName}/${entryPath}`;
+
+			const virtualFile = new File([blob], fileName, {
+				type: blob.type
+			});
+
+			// Set the webkitRelativePath to create the virtual folder structure
+			Object.defineProperty(virtualFile, 'webkitRelativePath', {
+				value: virtualPath,
+				writable: false,
+				enumerable: true,
+				configurable: true
+			});
+
+			extractedFiles.push(virtualFile);
 		}
 
 		await zipReader.close();

@@ -65,7 +65,7 @@
 		const groupIds = groups.groupIds ?? [];
 
 		for (let i = start; i <= end; i++) {
-			chapterStates[i].associatedGroup.groupIds = groupIds;
+			chapterStates[i].associatedGroup.groupIds = [...groupIds];
 		}
 	}
 </script>
