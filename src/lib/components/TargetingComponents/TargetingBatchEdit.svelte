@@ -40,7 +40,7 @@
 
 			const match = chapter.originalFolderPath.match(regex);
 			if (match && match[1]) {
-				chapter.chapterTitle = match[1];
+				chapter.chapterVolume = match[1];
 			}
 		});
 	}

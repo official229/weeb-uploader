@@ -114,12 +114,8 @@
 	{:else}
 		<p>
 			Enter your API token to validate your access to the WeebDex API. You can find this token by
-			opening up the developer tools (F12 on keyboard) in your browser and navigating to the
-			"Network" tab. Then, refresh the page and click on the "XHR" tab within the "Network" tab. You
-			will see a list of requests. Clicking on one should open up a panel with the request details.
-			Click on the "Cookies" tab within the request details panel (note that not all requests have
-			cookies, the /check request will have one though). You will see a a cookie called
-			"ory_kratos_session". That is your API token.
+			opening up the developer tools (F12 on keyboard) and copying the value of the
+			"ory_kratos_session" cookie.
 		</p>
 
 		<a
