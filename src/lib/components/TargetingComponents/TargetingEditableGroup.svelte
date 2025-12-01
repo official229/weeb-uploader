@@ -33,13 +33,25 @@
 		if (buttonRef) {
 			savedButtonRect = buttonRef.getBoundingClientRect();
 		}
+
+		// Reset selectedGroups to match current boundGroups.groupIds to avoid stale selections
+		// This ensures each edit session starts fresh with the current state
+		// Use empty array instead of null to avoid DropdownMultiSelector's effect that converts null to []
+		if (boundGroups.groupIds) {
+			selectedGroups = boundGroups.groupIds
+				.map((groupId) => availableGroups.find((group) => group.groupId === groupId))
+				.filter((group): group is ScanGroup => group !== undefined);
+		} else {
+			selectedGroups = [];
+		}
+
 		isEditing = true;
 		dropdownOpen = true;
 
 		window.addEventListener('keydown', handleKeyDown);
 	}
 
-	function stopEditing(commit: boolean) {
+	function stopEditing() {
 		isEditing = false;
 		dropdownOpen = false;
 		savedButtonRect = null;
@@ -49,12 +61,12 @@
 	}
 
 	function handleDropdownClose() {
-		stopEditing(true);
+		stopEditing();
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
-			stopEditing(false);
+			stopEditing();
 		}
 	}
 </script>
@@ -75,6 +87,7 @@
 	{/if}
 	<button
 		bind:this={buttonRef}
+		type="button"
 		class="flex flex-row gap-2 bg-gray-100 hover:bg-gray-200 cursor-pointer rounded-md px-1 border border-gray-300"
 		onclick={(e) => {
 			e.stopPropagation();
