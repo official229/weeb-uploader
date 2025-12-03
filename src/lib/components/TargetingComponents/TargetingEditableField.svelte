@@ -84,7 +84,10 @@
 				e.stopPropagation();
 				startEditing();
 			}}
-			class={['cursor-pointer hover:text-blue-500 px-2', textClass]}
+			class={[
+				'cursor-pointer hover:text-blue-500 px-2 min-w-5 min-h-5 bg-gray-100 rounded-md',
+				textClass
+			]}
 		>
 			{boundValue ?? '—'}
 		</button>

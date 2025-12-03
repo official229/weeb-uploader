@@ -201,7 +201,7 @@
 				placeholder="Start"
 				min="1"
 				max={chapterStates.length}
-				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+				class="border grow-1 bg-white border-gray-300 rounded-md p-1 min-w-10"
 			/>
 			<p>to</p>
 			<input
@@ -210,7 +210,7 @@
 				placeholder="End"
 				min="1"
 				max={chapterStates.length}
-				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+				class="border grow-1 bg-white border-gray-300 rounded-md p-1 min-w-10"
 			/>
 
 			<button
