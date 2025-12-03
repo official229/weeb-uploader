@@ -56,6 +56,12 @@
 				</div>
 			</div>
 
+			<!-- Original Folder Path -->
+			<div class="flex flex-row gap-2 items-center">
+				<span class="text-sm text-gray-500">Original:</span>
+				<p class="text-sm text-gray-500">{ch.originalFolderPath}</p>
+			</div>
+
 			<!-- Title -->
 			<div class="flex flex-row gap-2 items-center">
 				<span class="text-sm text-gray-500">Title:</span>
