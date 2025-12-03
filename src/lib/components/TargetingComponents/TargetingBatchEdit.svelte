@@ -59,6 +59,18 @@
 		});
 	}
 
+	function resetTitles() {
+		chapterStates.forEach((chapter) => {
+			chapter.chapterTitle = chapter.originalFolderPath?.split('/').pop() ?? '';
+		});
+	}
+
+	function clearTitles() {
+		chapterStates.forEach((chapter) => {
+			chapter.chapterTitle = '';
+		});
+	}
+
 	function applyGroupsToRange() {
 		const start = (rangeStart ?? 1) - 1;
 		const end = (rangeEnd ?? chapterStates.length) - 1;
@@ -100,6 +112,20 @@
 			placeholder="^(.+?)\s+-\s+Vol"
 			class="border grow-1 bg-white border-gray-300 rounded-md p-1"
 		/>
+		<button
+			type="button"
+			class="cursor-pointer bg-red-500 hover:bg-red-600 text-white rounded-md px-2 py-1"
+			onclick={clearTitles}
+		>
+			Clear Titles
+		</button>
+		<button
+			type="button"
+			class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white rounded-md px-2 py-1 mr-10"
+			onclick={resetTitles}
+		>
+			Reset Titles
+		</button>
 		<button
 			type="submit"
 			class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
