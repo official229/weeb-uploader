@@ -13,7 +13,7 @@
 	let titleCaseSensitive = $state(false);
 	let volumeRegex = $state('Vol\\.? ?(\\d+)');
 	let volumeCaseSensitive = $state(false);
-	let chapterRegex = $state('Ch\\.? ?(\\d+)');
+	let chapterRegex = $state('(?:Ch\\.?|Chapter) ?(\\d+(?:\\.\\d+)?)');
 	let chapterCaseSensitive = $state(false);
 
 	let groups = $state<ChapterUploadingGroup>(new ChapterUploadingGroup());
@@ -121,10 +121,11 @@
 		Here you have the ability to batch apply changes to all chapters at once.
 		<br />
 		For title / volume / chapter number extraction, Regex is used, where the first capture group will
-		be used to set the value.
+		be used to set the value. You can use as many non-capturing groups as you want, and they will be
+		ignored.
 		<br />
-		Should batch editing not be enough, you can manually edit each chapter individually, including removing
-		pages.
+		Should batch editing not be enough, you can manually edit each chapter property individually by clicking
+		on it, including removing pages (click on a chapter and it'll expand to show the pages).
 		<br />
 		You are also able to assign groups to chapters, but for this you first need to register them with
 		Group Preparation above.
