@@ -9,9 +9,13 @@
 
 	let { chapters: chapterStates = $bindable<ChapterState[]>([]) }: Props = $props();
 
-	let titleRegex = $state('');
-	let volumeRegex = $state('');
-	let chapterRegex = $state('');
+	let titleRegex = $state('^(?:Vol\\.? ?\\d+ ?)?(?:Ch\\.? ?\\d+ ?)?\\s*[-:]?\\s*(.+)');
+	let titleCaseSensitive = $state(false);
+	let volumeRegex = $state('Vol\\.? ?(\\d+)');
+	let volumeCaseSensitive = $state(false);
+	let chapterRegex = $state('Ch\\.? ?(\\d+)');
+	let chapterCaseSensitive = $state(false);
+
 	let groups = $state<ChapterUploadingGroup>(new ChapterUploadingGroup());
 
 	// starting index: 1
@@ -35,7 +39,8 @@
 	function applyTitleRegex() {
 		if (!titleRegex.trim()) return;
 
-		const regex = new RegExp(titleRegex);
+		const flags = titleCaseSensitive ? '' : 'i';
+		const regex = new RegExp(titleRegex, flags);
 		const start = (titleRange.start ?? 1) - 1;
 		const end = (titleRange.end ?? chapterStates.length) - 1;
 
@@ -53,7 +58,8 @@
 	function applyVolumeRegex() {
 		if (!volumeRegex.trim()) return;
 
-		const regex = new RegExp(volumeRegex);
+		const flags = volumeCaseSensitive ? '' : 'i';
+		const regex = new RegExp(volumeRegex, flags);
 		const start = (volumeRange.start ?? 1) - 1;
 		const end = (volumeRange.end ?? chapterStates.length) - 1;
 
@@ -71,7 +77,8 @@
 	function applyChapterNumberRegex() {
 		if (!chapterRegex.trim()) return;
 
-		const regex = new RegExp(chapterRegex);
+		const flags = chapterCaseSensitive ? '' : 'i';
+		const regex = new RegExp(chapterRegex, flags);
 		const start = (chapterNumberRange.start ?? 1) - 1;
 		const end = (chapterNumberRange.end ?? chapterStates.length) - 1;
 
@@ -120,9 +127,31 @@
 		pages.
 		<br />
 		You are also able to assign groups to chapters, but for this you first need to register them with
-		Group Preparation above. Groups will be applied to all chapters by default, or to the range if specified
-		(values are inclusive)
+		Group Preparation above.
+		<br />
+		Groups will be applied to all chapters by default, or to the range if specified (values are inclusive)
+		<br />
+		Some regexes are prefilled for you, but you can change them for your specific needs.
 	</p>
+
+	<div class="flex flex-row gap-5 bg-gray-100 rounded-md p-2 mb-10 items-center">
+		<p class="font-bold">Quick unfuckup actions:</p>
+
+		<button
+			type="button"
+			class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white rounded-md px-2 py-1"
+			onclick={clearTitles}
+		>
+			Clear Titles
+		</button>
+		<button
+			type="button"
+			class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white rounded-md px-2 py-1"
+			onclick={resetTitles}
+		>
+			Reset Titles
+		</button>
+	</div>
 
 	<!-- Title Regex -->
 	<form
@@ -140,23 +169,14 @@
 				placeholder="^(.+?)\s+-\s+Vol"
 				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
 			/>
-			<button
-				type="button"
-				class="cursor-pointer bg-red-500 hover:bg-red-600 text-white rounded-md px-2 py-1"
-				onclick={clearTitles}
-			>
-				Clear Titles
-			</button>
-			<button
-				type="button"
-				class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white rounded-md px-2 py-1"
-				onclick={resetTitles}
-			>
-				Reset Titles
-			</button>
 		</div>
 
 		<div class="flex flex-row gap-2 items-center">
+			<label class="flex flex-row gap-1 items-center whitespace-nowrap mr-3">
+				<input type="checkbox" bind:checked={titleCaseSensitive} class="w-5 h-5" />
+				<span>Case Sensitive</span>
+			</label>
+
 			<RangeProvider
 				bind:rangeStart={titleRange.start}
 				bind:rangeEnd={titleRange.end}
@@ -192,6 +212,11 @@
 		</div>
 
 		<div class="flex flex-row gap-2 items-center">
+			<label class="flex flex-row gap-1 items-center whitespace-nowrap mr-3">
+				<input type="checkbox" bind:checked={volumeCaseSensitive} class="w-5 h-5" />
+				<span>Case Sensitive</span>
+			</label>
+
 			<RangeProvider
 				bind:rangeStart={volumeRange.start}
 				bind:rangeEnd={volumeRange.end}
@@ -227,6 +252,11 @@
 		</div>
 
 		<div class="flex flex-row gap-2 items-center">
+			<label class="flex flex-row gap-1 items-center whitespace-nowrap mr-3">
+				<input type="checkbox" bind:checked={chapterCaseSensitive} class="w-5 h-5" />
+				<span>Case Sensitive</span>
+			</label>
+
 			<RangeProvider
 				bind:rangeStart={chapterNumberRange.start}
 				bind:rangeEnd={chapterNumberRange.end}
