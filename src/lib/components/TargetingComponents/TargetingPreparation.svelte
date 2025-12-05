@@ -37,6 +37,17 @@
 	const { selectedFolders, onDone }: Props = $props();
 
 	let isAllready = $derived.by(() => targetingState.seriesId);
+	let showOnlyUngrouped = $state(false);
+
+	let filteredChapters = $derived.by(() => {
+		if (!showOnlyUngrouped) {
+			return targetingState.chapterStates;
+		}
+		return targetingState.chapterStates.filter(
+			(chapter) =>
+				!chapter.associatedGroup.groupIds || chapter.associatedGroup.groupIds.length === 0
+		);
+	});
 
 	async function createChapterFromDefinitionFile(
 		definitionFile: SelectedFile,
@@ -270,10 +281,20 @@
 		</button>
 
 		<div class="flex flex-col gap-2">
-			<h2 class="text-lg font-semibold">Chapters</h2>
+			<div class="flex flex-row items-center gap-2">
+				<h2 class="text-lg font-semibold">Chapters</h2>
+				<label class="flex flex-row items-center gap-2 cursor-pointer">
+					<input type="checkbox" bind:checked={showOnlyUngrouped} class="cursor-pointer" />
+					<span class="text-sm text-gray-600">Show only chapters without groups</span>
+				</label>
+			</div>
 			<div class="flex flex-col gap-2 max-h-150 overflow-y-auto">
-				{#each targetingState.chapterStates as chapter, index}
-					<TargetedChapterEditor {index} bind:chapter={targetingState.chapterStates[index]} />
+				{#each filteredChapters as chapter, index}
+					{@const originalIndex = targetingState.chapterStates.findIndex((c) => c === chapter)}
+					<TargetedChapterEditor
+						{index}
+						bind:chapter={targetingState.chapterStates[originalIndex]}
+					/>
 				{/each}
 			</div>
 		</div>
