@@ -26,33 +26,102 @@
 	function toggleExpanded() {
 		isExpanded = !isExpanded;
 	}
+
+	function revertField(fieldName: string) {
+		if (ch.originalFieldValues.has(fieldName)) {
+			const originalValue = ch.originalFieldValues.get(fieldName);
+
+			if (fieldName === 'title') {
+				ch.chapterTitle = originalValue as string | null;
+			} else if (fieldName === 'volume') {
+				ch.chapterVolume = originalValue as string | null;
+			} else if (fieldName === 'chapterNumber') {
+				ch.chapterNumber = originalValue as string | null;
+			} else if (fieldName === 'groups') {
+				ch.associatedGroup.groupIds = originalValue ? [...(originalValue as string[])] : null;
+			}
+
+			ch.manuallyEditedFields.delete(fieldName);
+			ch.originalFieldValues.delete(fieldName);
+		}
+	}
 </script>
 
 <div
 	class={['flex flex-col gap-2 justify-between overflow-clip rounded-lg bg-gray-200', className]}
 >
 	<!-- Chapter header -->
-	<button
-		class="flex flex-row justify-between w-full clickable-hint px-2 py-1"
-		onclick={toggleExpanded}
-	>
-		<div class="flex flex-col gap-2">
+	<div class="flex flex-row justify-between w-full px-2 py-1">
+		<div class="flex flex-col gap-2 flex-1">
 			<!-- Index, Volume, chapter number, and Groups -->
 			<div class="flex flex-row gap-2 items-center">
 				<span class="text-sm text-gray-500 mr-3">{index + 1}.</span>
 
 				<div class="flex flex-row gap-2 items-center">
 					<span class="text-sm text-gray-500">Vol.</span>
-					<TargetingEditableField bind:value={ch.chapterVolume} textClass="text-sm text-gray-500" />
+					<TargetingEditableField
+						bind:value={ch.chapterVolume}
+						textClass="text-sm text-gray-500"
+						fieldName="volume"
+						chapter={ch}
+					/>
+					{#if ch.manuallyEditedFields.has('volume')}
+						<button
+							type="button"
+							onclick={(e) => {
+								e.stopPropagation();
+								revertField('volume');
+							}}
+							class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+							title="Revert manual edit"
+						>
+							<div class="i-mdi-undo h-4 w-4"></div>
+						</button>
+					{/if}
 				</div>
 				<div class="flex flex-row gap-2 items-center">
 					<span class="text-sm text-gray-500">Ch.</span>
-					<TargetingEditableField bind:value={ch.chapterNumber} textClass="text-sm text-gray-500" />
+					<TargetingEditableField
+						bind:value={ch.chapterNumber}
+						textClass="text-sm text-gray-500"
+						fieldName="chapterNumber"
+						chapter={ch}
+					/>
+					{#if ch.manuallyEditedFields.has('chapterNumber')}
+						<button
+							type="button"
+							onclick={(e) => {
+								e.stopPropagation();
+								revertField('chapterNumber');
+							}}
+							class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+							title="Revert manual edit"
+						>
+							<div class="i-mdi-undo h-4 w-4"></div>
+						</button>
+					{/if}
 				</div>
 
 				<div class="flex flex-row gap-2 items-center">
 					<span class="text-sm text-gray-500">Groups:</span>
-					<TargetingEditableGroup bind:groups={ch.associatedGroup} />
+					<TargetingEditableGroup
+						bind:groups={ch.associatedGroup}
+						fieldName="groups"
+						chapter={ch}
+					/>
+					{#if ch.manuallyEditedFields.has('groups')}
+						<button
+							type="button"
+							onclick={(e) => {
+								e.stopPropagation();
+								revertField('groups');
+							}}
+							class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+							title="Revert manual edit"
+						>
+							<div class="i-mdi-undo h-4 w-4"></div>
+						</button>
+					{/if}
 				</div>
 			</div>
 
@@ -67,21 +136,40 @@
 				<span class="text-sm text-gray-500">Title:</span>
 				<TargetingEditableField
 					bind:value={ch.chapterTitle}
-					class="w-full"
+					class=""
 					textClass="text-xl font-bold"
+					fieldName="title"
+					chapter={ch}
 				/>
+				{#if ch.manuallyEditedFields.has('title')}
+					<button
+						type="button"
+						onclick={(e) => {
+							e.stopPropagation();
+							revertField('title');
+						}}
+						class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+						title="Revert manual edit"
+					>
+						<div class="i-mdi-undo h-4 w-4"></div>
+					</button>
+				{/if}
 			</div>
 		</div>
 
 		<!-- Images preview indicator -->
-		<div class="flex flex-row items-center">
+		<button
+			type="button"
+			class="flex flex-row items-center clickable-hint"
+			onclick={toggleExpanded}
+		>
 			{#if isExpanded}
 				<div aria-label="Collapse" class="w-10 h-10 i-mdi-chevron-up"></div>
 			{:else}
 				<div aria-label="Expand" class="w-10 h-10 i-mdi-chevron-down"></div>
 			{/if}
-		</div>
-	</button>
+		</button>
+	</div>
 
 	<!-- Chapter Images Preview -->
 	{#if isExpanded}

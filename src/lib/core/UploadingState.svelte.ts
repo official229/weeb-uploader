@@ -2,6 +2,7 @@ import axios, { type AxiosProgressEvent } from 'axios';
 import { RATE_LIMITER_SESSION, RATE_LIMITER_UPLOAD } from './ApiWithRateLimit.svelte';
 import { cluster } from 'radashi';
 import { ChapterPageType, SelectedFolder } from './GroupedFolders';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
 export class ScanGroup {
 	public groupId = $state<string>('');
@@ -167,6 +168,10 @@ export class ChapterState {
 	public associatedUploadSessionId = $state<string | null>(null);
 	public originalSelectedFolder = $state<SelectedFolder | null>(null);
 
+	// Manual edit tracking
+	public manuallyEditedFields = $state<SvelteSet<string>>(new SvelteSet());
+	public originalFieldValues = $state<SvelteMap<string, unknown>>(new SvelteMap());
+
 	public constructor(
 		originalFolderPath: string | null,
 		chapterTitle: string | null,
@@ -193,6 +198,8 @@ export class ChapterState {
 		this.error = error;
 		this.associatedUploadSessionId = associatedUploadSessionId;
 		this.originalSelectedFolder = originalSelectedFolder;
+		this.manuallyEditedFields = new SvelteSet();
+		this.originalFieldValues = new SvelteMap();
 	}
 
 	public checkProgress(): void {

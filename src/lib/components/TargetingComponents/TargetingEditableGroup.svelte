@@ -1,5 +1,9 @@
 <script lang="ts">
-	import type { ChapterUploadingGroup, ScanGroup } from '$lib/core/UploadingState.svelte';
+	import type {
+		ChapterUploadingGroup,
+		ScanGroup,
+		ChapterState
+	} from '$lib/core/UploadingState.svelte';
 	import { getContext } from 'svelte';
 	import DropdownMultiSelector from '../Common/DropdownMultiSelector.svelte';
 	import { TargetingState, targetingStateContext } from './TargetingState.svelte';
@@ -15,10 +19,16 @@
 
 	interface Props {
 		groups: ChapterUploadingGroup;
+		fieldName?: string;
+		chapter?: ChapterState;
 	}
 
 	let {
-		groups: boundGroups = $bindable<ChapterUploadingGroup>(null as unknown as ChapterUploadingGroup)
+		groups: boundGroups = $bindable<ChapterUploadingGroup>(
+			null as unknown as ChapterUploadingGroup
+		),
+		fieldName,
+		chapter
 	}: Props = $props();
 
 	let isEditing = $state(false);
@@ -29,6 +39,18 @@
 	let savedButtonRect: DOMRect | null = $state(null);
 
 	function startEditing() {
+		// Capture original value if tracking is enabled and field isn't already manually edited
+		if (chapter && fieldName && !chapter.manuallyEditedFields.has(fieldName)) {
+			// Store original value if not already stored
+			if (!chapter.originalFieldValues.has(fieldName)) {
+				// Store a copy of the groupIds array
+				chapter.originalFieldValues.set(
+					fieldName,
+					boundGroups.groupIds ? [...boundGroups.groupIds] : null
+				);
+			}
+		}
+
 		// Capture button position before it's removed from DOM
 		if (buttonRef) {
 			savedButtonRect = buttonRef.getBoundingClientRect();
@@ -58,6 +80,11 @@
 		window.removeEventListener('keydown', handleKeyDown);
 
 		boundGroups.groupIds = selectedGroups?.map((group) => group.groupId) ?? [];
+
+		// Mark field as manually edited when user commits the edit
+		if (chapter && fieldName) {
+			chapter.manuallyEditedFields.add(fieldName);
+		}
 	}
 
 	function handleDropdownClose() {

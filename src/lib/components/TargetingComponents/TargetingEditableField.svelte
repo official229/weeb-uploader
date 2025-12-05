@@ -1,14 +1,20 @@
 <script lang="ts">
+	import type { ChapterState } from '$lib/core/UploadingState.svelte';
+
 	interface Props {
 		value: string | null;
 		class?: string;
 		textClass?: string;
+		fieldName?: string;
+		chapter?: ChapterState;
 	}
 
 	let {
 		value: boundValue = $bindable<string | null>(null),
 		class: className = '',
-		textClass = ''
+		textClass = '',
+		fieldName,
+		chapter
 	}: Props = $props();
 
 	let isEditing = $state(false);
@@ -16,6 +22,14 @@
 	let inputRef = $state<HTMLInputElement | null>(null);
 
 	function startEditing() {
+		// Capture original value if tracking is enabled and field isn't already manually edited
+		if (chapter && fieldName && !chapter.manuallyEditedFields.has(fieldName)) {
+			// Store original value if not already stored
+			if (!chapter.originalFieldValues.has(fieldName)) {
+				chapter.originalFieldValues.set(fieldName, boundValue);
+			}
+		}
+
 		isEditing = true;
 		editValue = boundValue;
 	}
@@ -34,6 +48,10 @@
 		isEditing = false;
 		if (commit) {
 			boundValue = editValue;
+			// Mark field as manually edited when user commits the edit
+			if (chapter && fieldName) {
+				chapter.manuallyEditedFields.add(fieldName);
+			}
 		} else {
 			editValue = boundValue;
 		}
@@ -48,7 +66,10 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class={['flex flex-row gap-2 items-center', className]} onclick={(e) => e.stopPropagation()}>
+<div
+	class={['flex flex-row gap-2 items-center', className, { 'grow-1': isEditing }]}
+	onclick={(e) => e.stopPropagation()}
+>
 	{#if isEditing}
 		<form
 			onsubmit={(e) => {
@@ -61,7 +82,7 @@
 				bind:this={inputRef}
 				type="text"
 				bind:value={editValue}
-				class="w-full border border-gray-500 rounded-md p-1 bg-white"
+				class="grow-1 border border-gray-500 rounded-md p-1 bg-white"
 			/>
 			<button
 				onclick={(e) => {

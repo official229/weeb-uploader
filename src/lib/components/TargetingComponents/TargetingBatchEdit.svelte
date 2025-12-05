@@ -47,6 +47,8 @@
 		for (let i = start; i <= end; i++) {
 			const chapter = chapterStates[i];
 			if (!chapter.originalFolderPath) continue;
+			// Skip if title was manually edited
+			if (chapter.manuallyEditedFields.has('title')) continue;
 
 			const match = chapter.originalFolderPath.match(regex);
 			if (match && match[1]) {
@@ -66,6 +68,8 @@
 		for (let i = start; i <= end; i++) {
 			const chapter = chapterStates[i];
 			if (!chapter.originalFolderPath) continue;
+			// Skip if volume was manually edited
+			if (chapter.manuallyEditedFields.has('volume')) continue;
 
 			const match = chapter.originalFolderPath.match(regex);
 			if (match && match[1]) {
@@ -85,6 +89,8 @@
 		for (let i = start; i <= end; i++) {
 			const chapter = chapterStates[i];
 			if (!chapter.originalFolderPath) continue;
+			// Skip if chapterNumber was manually edited
+			if (chapter.manuallyEditedFields.has('chapterNumber')) continue;
 
 			const match = chapter.originalFolderPath.match(regex);
 			if (match && match[1]) {
@@ -95,12 +101,16 @@
 
 	function resetTitles() {
 		chapterStates.forEach((chapter) => {
+			// Skip if title was manually edited
+			if (chapter.manuallyEditedFields.has('title')) return;
 			chapter.chapterTitle = chapter.originalFolderPath?.split('/').pop() ?? '';
 		});
 	}
 
 	function clearTitles() {
 		chapterStates.forEach((chapter) => {
+			// Skip if title was manually edited
+			if (chapter.manuallyEditedFields.has('title')) return;
 			chapter.chapterTitle = '';
 		});
 	}
@@ -111,7 +121,10 @@
 		const groupIds = groups.groupIds ?? [];
 
 		for (let i = start; i <= end; i++) {
-			chapterStates[i].associatedGroup.groupIds = [...groupIds];
+			const chapter = chapterStates[i];
+			// Skip if groups were manually edited
+			if (chapter.manuallyEditedFields.has('groups')) continue;
+			chapter.associatedGroup.groupIds = [...groupIds];
 		}
 	}
 </script>
