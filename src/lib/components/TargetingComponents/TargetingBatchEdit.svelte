@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ChapterUploadingGroup, type ChapterState } from '$lib/core/UploadingState.svelte';
+	import RangeProvider from '../Common/RangeProvider.svelte';
 	import TargetingEditableGroup from './TargetingEditableGroup.svelte';
 
 	interface Props {
@@ -14,49 +15,75 @@
 	let groups = $state<ChapterUploadingGroup>(new ChapterUploadingGroup());
 
 	// starting index: 1
-	let rangeStart = $state<number | null>(null);
-	let rangeEnd = $state<number | null>(null);
+	const groupRange = $state({
+		start: null,
+		end: null
+	});
+	const titleRange = $state({
+		start: null,
+		end: null
+	});
+	const volumeRange = $state({
+		start: null,
+		end: null
+	});
+	const chapterNumberRange = $state({
+		start: null,
+		end: null
+	});
 
 	function applyTitleRegex() {
 		if (!titleRegex.trim()) return;
 
 		const regex = new RegExp(titleRegex);
-		chapterStates.forEach((chapter) => {
-			if (!chapter.originalFolderPath) return;
+		const start = (titleRange.start ?? 1) - 1;
+		const end = (titleRange.end ?? chapterStates.length) - 1;
+
+		for (let i = start; i <= end; i++) {
+			const chapter = chapterStates[i];
+			if (!chapter.originalFolderPath) continue;
 
 			const match = chapter.originalFolderPath.match(regex);
 			if (match && match[1]) {
 				chapter.chapterTitle = match[1];
 			}
-		});
+		}
 	}
 
 	function applyVolumeRegex() {
 		if (!volumeRegex.trim()) return;
 
 		const regex = new RegExp(volumeRegex);
-		chapterStates.forEach((chapter) => {
-			if (!chapter.originalFolderPath) return;
+		const start = (volumeRange.start ?? 1) - 1;
+		const end = (volumeRange.end ?? chapterStates.length) - 1;
+
+		for (let i = start; i <= end; i++) {
+			const chapter = chapterStates[i];
+			if (!chapter.originalFolderPath) continue;
 
 			const match = chapter.originalFolderPath.match(regex);
 			if (match && match[1]) {
 				chapter.chapterVolume = match[1];
 			}
-		});
+		}
 	}
 
 	function applyChapterNumberRegex() {
 		if (!chapterRegex.trim()) return;
 
 		const regex = new RegExp(chapterRegex);
-		chapterStates.forEach((chapter) => {
-			if (!chapter.originalFolderPath) return;
+		const start = (chapterNumberRange.start ?? 1) - 1;
+		const end = (chapterNumberRange.end ?? chapterStates.length) - 1;
+
+		for (let i = start; i <= end; i++) {
+			const chapter = chapterStates[i];
+			if (!chapter.originalFolderPath) continue;
 
 			const match = chapter.originalFolderPath.match(regex);
 			if (match && match[1]) {
 				chapter.chapterNumber = match[1];
 			}
-		});
+		}
 	}
 
 	function resetTitles() {
@@ -72,8 +99,8 @@
 	}
 
 	function applyGroupsToRange() {
-		const start = (rangeStart ?? 1) - 1;
-		const end = (rangeEnd ?? chapterStates.length) - 1;
+		const start = (groupRange.start ?? 1) - 1;
+		const end = (groupRange.end ?? chapterStates.length) - 1;
 		const groupIds = groups.groupIds ?? [];
 
 		for (let i = start; i <= end; i++) {
@@ -103,35 +130,47 @@
 			applyTitleRegex();
 			e.preventDefault();
 		}}
-		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center"
+		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
 	>
-		<p class="font-bold">Extract Title Regex:</p>
-		<input
-			type="text"
-			bind:value={titleRegex}
-			placeholder="^(.+?)\s+-\s+Vol"
-			class="border grow-1 bg-white border-gray-300 rounded-md p-1"
-		/>
-		<button
-			type="button"
-			class="cursor-pointer bg-red-500 hover:bg-red-600 text-white rounded-md px-2 py-1"
-			onclick={clearTitles}
-		>
-			Clear Titles
-		</button>
-		<button
-			type="button"
-			class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white rounded-md px-2 py-1 mr-10"
-			onclick={resetTitles}
-		>
-			Reset Titles
-		</button>
-		<button
-			type="submit"
-			class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-		>
-			Apply
-		</button>
+		<div class="flex flex-row gap-2 items-center grow-1">
+			<p class="font-bold">Extract Title Regex:</p>
+			<input
+				type="text"
+				bind:value={titleRegex}
+				placeholder="^(.+?)\s+-\s+Vol"
+				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+			/>
+			<button
+				type="button"
+				class="cursor-pointer bg-red-500 hover:bg-red-600 text-white rounded-md px-2 py-1"
+				onclick={clearTitles}
+			>
+				Clear Titles
+			</button>
+			<button
+				type="button"
+				class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white rounded-md px-2 py-1"
+				onclick={resetTitles}
+			>
+				Reset Titles
+			</button>
+		</div>
+
+		<div class="flex flex-row gap-2 items-center">
+			<RangeProvider
+				bind:rangeStart={titleRange.start}
+				bind:rangeEnd={titleRange.end}
+				min={1}
+				max={chapterStates.length}
+			/>
+
+			<button
+				type="submit"
+				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
+			>
+				Apply
+			</button>
+		</div>
 	</form>
 
 	<!-- Volume Regex -->
@@ -140,21 +179,33 @@
 			applyVolumeRegex();
 			e.preventDefault();
 		}}
-		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center"
+		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
 	>
-		<p class="font-bold">Extract Volume Regex:</p>
-		<input
-			type="text"
-			bind:value={volumeRegex}
-			placeholder="Vol\.? ?(\d+)"
-			class="border grow-1 bg-white border-gray-300 rounded-md p-1"
-		/>
-		<button
-			type="submit"
-			class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-		>
-			Apply
-		</button>
+		<div class="flex flex-row gap-2 items-center grow-1">
+			<p class="font-bold">Extract Volume Regex:</p>
+			<input
+				type="text"
+				bind:value={volumeRegex}
+				placeholder="Vol\.? ?(\d+)"
+				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+			/>
+		</div>
+
+		<div class="flex flex-row gap-2 items-center">
+			<RangeProvider
+				bind:rangeStart={volumeRange.start}
+				bind:rangeEnd={volumeRange.end}
+				min={1}
+				max={chapterStates.length}
+			/>
+
+			<button
+				type="submit"
+				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
+			>
+				Apply
+			</button>
+		</div>
 	</form>
 
 	<!-- Chapter Number Regex -->
@@ -163,21 +214,33 @@
 			applyChapterNumberRegex();
 			e.preventDefault();
 		}}
-		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center"
+		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
 	>
-		<p class="font-bold">Extract Chapter Number Regex:</p>
-		<input
-			type="text"
-			bind:value={chapterRegex}
-			placeholder="Ch\.? ?(\d+)"
-			class="border grow-1 bg-white border-gray-300 rounded-md p-1"
-		/>
-		<button
-			type="submit"
-			class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-		>
-			Apply
-		</button>
+		<div class="flex flex-row gap-2 items-center grow-1">
+			<p class="font-bold">Extract Chapter Number Regex:</p>
+			<input
+				type="text"
+				bind:value={chapterRegex}
+				placeholder="Ch\.? ?(\d+)"
+				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+			/>
+		</div>
+
+		<div class="flex flex-row gap-2 items-center">
+			<RangeProvider
+				bind:rangeStart={chapterNumberRange.start}
+				bind:rangeEnd={chapterNumberRange.end}
+				min={1}
+				max={chapterStates.length}
+			/>
+
+			<button
+				type="submit"
+				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
+			>
+				Apply
+			</button>
+		</div>
 	</form>
 
 	<!-- Groups -->
@@ -194,23 +257,11 @@
 		</div>
 
 		<div class="flex flex-row gap-2 items-center">
-			<p>Range:</p>
-			<input
-				type="number"
-				bind:value={rangeStart}
-				placeholder="Start"
-				min="1"
+			<RangeProvider
+				bind:rangeStart={groupRange.start}
+				bind:rangeEnd={groupRange.end}
+				min={1}
 				max={chapterStates.length}
-				class="border grow-1 bg-white border-gray-300 rounded-md p-1 min-w-10"
-			/>
-			<p>to</p>
-			<input
-				type="number"
-				bind:value={rangeEnd}
-				placeholder="End"
-				min="1"
-				max={chapterStates.length}
-				class="border grow-1 bg-white border-gray-300 rounded-md p-1 min-w-10"
 			/>
 
 			<button
