@@ -73,7 +73,8 @@
 
 			const match = chapter.originalFolderPath.match(regex);
 			if (match && match[1]) {
-				chapter.chapterVolume = match[1];
+				// handle leading zeros
+				chapter.chapterVolume = match[1].replace(/^0+/, '');
 			}
 		}
 	}
@@ -94,7 +95,8 @@
 
 			const match = chapter.originalFolderPath.match(regex);
 			if (match && match[1]) {
-				chapter.chapterNumber = match[1];
+				// handle leading zeros
+				chapter.chapterNumber = match[1].replace(/^0+/, '');
 			}
 		}
 	}
