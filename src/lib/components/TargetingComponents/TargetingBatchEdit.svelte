@@ -9,7 +9,7 @@
 
 	let { chapters: chapterStates = $bindable<ChapterState[]>([]) }: Props = $props();
 
-	let titleRegex = $state('^.*?(?:Vol\\.? ?\\d+|Ch\\.? ?\\d+)\\s*[-:]\\s+(.+)$');
+	let titleRegex = $state('- (.+)$');
 	let titleCaseSensitive = $state(false);
 	let volumeRegex = $state('Vol\\.? ?(\\d+)');
 	let volumeCaseSensitive = $state(false);
