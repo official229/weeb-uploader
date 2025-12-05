@@ -127,6 +127,23 @@
 			chapter.associatedGroup.groupIds = [...groupIds];
 		}
 	}
+
+	function appendGroupsToRange() {
+		const start = (groupRange.start ?? 1) - 1;
+		const end = (groupRange.end ?? chapterStates.length) - 1;
+		const groupIds = groups.groupIds ?? [];
+
+		for (let i = start; i <= end; i++) {
+			const chapter = chapterStates[i];
+			// Skip if groups were manually edited
+			if (chapter.manuallyEditedFields.has('groups')) continue;
+
+			const existing = chapter.associatedGroup.groupIds ?? [];
+			const newGroups = [...existing, ...groupIds];
+			const uniqueGroups = [...new Set(newGroups)];
+			chapter.associatedGroup.groupIds = uniqueGroups;
+		}
+	}
 </script>
 
 <div class="flex flex-col gap-2">
@@ -312,7 +329,15 @@
 				type="submit"
 				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
 			>
-				Apply
+				Set Group(s)
+			</button>
+
+			<button
+				type="button"
+				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
+				onclick={appendGroupsToRange}
+			>
+				Append Group(s)
 			</button>
 		</div>
 	</form>
