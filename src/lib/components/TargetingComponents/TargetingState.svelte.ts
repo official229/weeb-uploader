@@ -5,11 +5,13 @@ import { createContext } from 'svelte';
 
 export class TargetingState {
 	public seriesId = $state<string | null>(null);
+	public language = $state<string>('en');
 	public chapterStates = $state<ChapterState[]>([]);
 	public availableScanGroups = $state<ScanGroup[]>([]);
 
 	public reset() {
 		this.seriesId = null;
+		this.language = 'en';
 		this.chapterStates = [];
 		this.availableScanGroups = [];
 	}

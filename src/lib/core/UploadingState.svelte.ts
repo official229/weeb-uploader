@@ -212,7 +212,7 @@ export class ChapterState {
 		this.progress = progressTotal / totalPages;
 	}
 
-	public async upload(token: string): Promise<void> {
+	public async upload(token: string, language: string): Promise<void> {
 		this.status = ChapterStatus.IN_PROGRESS;
 		this.progress = 0;
 		this.error = null;
@@ -318,7 +318,7 @@ export class ChapterState {
 					chapter: this.chapterNumber?.toString() ?? '',
 					volume: this.chapterVolume?.toString() ?? '',
 					title: this.chapterTitle ?? '',
-					language: 'en' // TODO: make this configurable
+					language: language
 				},
 				page_order: gatheredUploads
 			};

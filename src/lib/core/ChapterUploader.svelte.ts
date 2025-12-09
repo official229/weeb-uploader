@@ -17,10 +17,16 @@ export class ChapterUploader {
 	public error = $state<string | null>(null);
 	public currentChapterIndex = $state<number>(-1);
 	public authToken = $state<string | null>(null);
+	public language = $state<string>('en');
 
-	public constructor(chapters: ChapterState[], authToken: string | null = null) {
+	public constructor(
+		chapters: ChapterState[],
+		authToken: string | null = null,
+		language: string = 'en'
+	) {
 		this.chapters = chapters;
 		this.authToken = authToken;
+		this.language = language;
 		this.status = UploaderStatus.NOT_STARTED;
 		this.progress = 0;
 		this.error = null;
@@ -83,7 +89,7 @@ export class ChapterUploader {
 				}
 
 				// Upload the chapter
-				await chapter.upload(this.authToken);
+				await chapter.upload(this.authToken, this.language);
 
 				// Check if upload failed
 				if (chapter.status === ChapterStatus.FAILED) {

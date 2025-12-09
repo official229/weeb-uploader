@@ -32,7 +32,7 @@
 	let leftWidth = $state(20); // percentage
 
 	function onSubmit() {
-		finalizedFolderSelection = slicedFolders;
+		finalizedFolderSelection = activeSelectedSlicedFolders.map((folder) => folder.folder);
 		onDone();
 	}
 

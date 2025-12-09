@@ -6,6 +6,8 @@
 		targetingStateContext,
 		type MangaData
 	} from '$lib/components/TargetingComponents/TargetingState.svelte';
+	import DropdownSingleSelector from '../Common/DropdownSingleSelector.svelte';
+	import { languages, getLanguageDisplayText, getLanguageFlag } from './LanguageOptions.svelte';
 
 	const API_ENDPOINT = 'https://api.weebdex.org/manga';
 
@@ -45,6 +47,7 @@
 		targetingState.seriesId = null;
 		seriesData = null;
 		validationError = null;
+		targetingState.language = 'en';
 	}
 
 	$effect(() => {
@@ -139,6 +142,21 @@
 					<p class="text-sm font-bold">ID: {seriesData.id}</p>
 					<p class="text-sm font-bold">{seriesData.title}</p>
 					<p class="text-sm text-gray-500">{seriesData.description}</p>
+					<div class="flex flex-row gap-2 items-center">
+						<label for="language-selector" class="text-sm font-medium flex items-center gap-1">
+							Language:
+						</label>
+						<DropdownSingleSelector
+							id="language-selector"
+							items={languages.map((l) => l.id)}
+							bind:selectedItem={targetingState.language}
+							getDisplayText={(id) => {
+								const lang = languages.find((l) => l.id === id);
+								return lang ? getLanguageDisplayText(lang) : id;
+							}}
+							class="text-sm"
+						/>
+					</div>
 				</div>
 			</div>
 		</div>

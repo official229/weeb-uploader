@@ -70,7 +70,11 @@
 		console.log('Chapters:', targetingState.chapterStates);
 
 		// Create a new uploader instance with current chapters
-		chapterUploader = new ChapterUploader([...targetingState.chapterStates], authContext.apiToken);
+		chapterUploader = new ChapterUploader(
+			[...targetingState.chapterStates],
+			authContext.apiToken,
+			targetingState.language
+		);
 
 		isUploading = true;
 		working = true;
