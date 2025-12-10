@@ -17,9 +17,14 @@
 	let chapterCaseSensitive = $state(false);
 
 	let groups = $state<ChapterUploadingGroup>(new ChapterUploadingGroup());
+	let volumeValue = $state<string | null>(null);
 
 	// starting index: 1
 	const groupRange = $state({
+		start: null,
+		end: null
+	});
+	const volumeAssignmentRange = $state({
 		start: null,
 		end: null
 	});
@@ -144,6 +149,19 @@
 			const newGroups = [...existing, ...groupIds];
 			const uniqueGroups = [...new Set(newGroups)];
 			chapter.associatedGroup.groupIds = uniqueGroups;
+		}
+	}
+
+	function applyVolumeToRange() {
+		const start = (volumeAssignmentRange.start ?? 1) - 1;
+		const end = (volumeAssignmentRange.end ?? chapterStates.length) - 1;
+		const volume = volumeValue?.trim() || null;
+
+		for (let i = start; i <= end; i++) {
+			const chapter = chapterStates[i];
+			// Skip if volume was manually edited
+			if (chapter.manuallyEditedFields.has('volume')) continue;
+			chapter.chapterVolume = volume;
 		}
 	}
 </script>
@@ -293,6 +311,41 @@
 			<RangeProvider
 				bind:rangeStart={chapterNumberRange.start}
 				bind:rangeEnd={chapterNumberRange.end}
+				min={1}
+				max={chapterStates.length}
+			/>
+
+			<button
+				type="submit"
+				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
+			>
+				Apply
+			</button>
+		</div>
+	</form>
+
+	<!-- Volume Assignment -->
+	<form
+		onsubmit={(e) => {
+			applyVolumeToRange();
+			e.preventDefault();
+		}}
+		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
+	>
+		<div class="flex flex-row gap-2 items-center">
+			<p class="font-bold">Assign Volume to All Chapters:</p>
+			<input
+				type="text"
+				bind:value={volumeValue}
+				placeholder="Volume number"
+				class="border bg-white border-gray-300 rounded-md p-1 min-w-20"
+			/>
+		</div>
+
+		<div class="flex flex-row gap-2 items-center">
+			<RangeProvider
+				bind:rangeStart={volumeAssignmentRange.start}
+				bind:rangeEnd={volumeAssignmentRange.end}
 				min={1}
 				max={chapterStates.length}
 			/>
