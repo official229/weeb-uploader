@@ -45,13 +45,17 @@
 			ch.originalFieldValues.delete(fieldName);
 		}
 	}
+
+	function deleteChapter() {
+		ch.isDeleted = !ch.isDeleted;
+	}
 </script>
 
 <div
 	class={['flex flex-col gap-2 justify-between overflow-clip rounded-lg bg-gray-200', className]}
 >
 	<!-- Chapter header -->
-	<div class="flex flex-row justify-between w-full px-2 py-1">
+	<div class="flex flex-row items-center justify-between w-full px-2 py-1 gap-2">
 		<div class="flex flex-col gap-2 flex-1">
 			<!-- Index, Volume, chapter number, and Groups -->
 			<div class="flex flex-row gap-2 items-center">
@@ -157,10 +161,22 @@
 			</div>
 		</div>
 
+		<button
+			type="button"
+			class="flex flex-row items-center justify-center clickable-hint rounded-md w-20 h-20 px-1 py-0.5 text-xs"
+			title="Delete chapter"
+			onclick={deleteChapter}
+		>
+			{#if ch.isDeleted}
+				<div class="i-mdi-restore h-10 w-10 bg-green-500 hover:bg-green-600 text-white"></div>
+			{:else}
+				<div class="i-mdi-delete h-10 w-10 bg-red-500 hover:bg-red-600 text-white"></div>
+			{/if}
+		</button>
 		<!-- Images preview indicator -->
 		<button
 			type="button"
-			class="flex flex-row items-center clickable-hint"
+			class="flex flex-row items-center justify-center clickable-hint w-20 h-20 rounded-md"
 			onclick={toggleExpanded}
 		>
 			{#if isExpanded}

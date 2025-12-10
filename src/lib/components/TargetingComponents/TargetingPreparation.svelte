@@ -38,15 +38,27 @@
 
 	let isAllready = $derived.by(() => targetingState.seriesId);
 	let showOnlyUngrouped = $state(false);
+	let showOnlyNonDeleted = $state(true);
 
 	let filteredChapters = $derived.by(() => {
-		if (!showOnlyUngrouped) {
+		if (!showOnlyUngrouped && !showOnlyNonDeleted) {
 			return targetingState.chapterStates;
 		}
-		return targetingState.chapterStates.filter(
-			(chapter) =>
-				!chapter.associatedGroup.groupIds || chapter.associatedGroup.groupIds.length === 0
-		);
+
+		let chapters = targetingState.chapterStates;
+
+		if (showOnlyUngrouped) {
+			chapters = chapters.filter(
+				(chapter) =>
+					!chapter.associatedGroup.groupIds || chapter.associatedGroup.groupIds.length === 0
+			);
+		}
+
+		if (showOnlyNonDeleted) {
+			chapters = chapters.filter((chapter) => !chapter.isDeleted);
+		}
+
+		return chapters;
 	});
 
 	async function createChapterFromDefinitionFile(
@@ -286,6 +298,10 @@
 				<label class="flex flex-row items-center gap-2 cursor-pointer">
 					<input type="checkbox" bind:checked={showOnlyUngrouped} class="cursor-pointer" />
 					<span class="text-sm text-gray-600">Show only chapters without groups</span>
+				</label>
+				<label class="flex flex-row items-center gap-2 cursor-pointer">
+					<input type="checkbox" bind:checked={showOnlyNonDeleted} class="cursor-pointer" />
+					<span class="text-sm text-gray-600">Show only non-deleted chapters</span>
 				</label>
 			</div>
 			<div class="flex flex-col gap-2 max-h-150 overflow-y-auto">

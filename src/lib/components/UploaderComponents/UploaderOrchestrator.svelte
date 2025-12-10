@@ -23,7 +23,7 @@
 		);
 	}
 
-	let chapters = $derived(targetingState.chapterStates);
+	let chapters = $derived(targetingState.chapterStates.filter((chapter) => !chapter.isDeleted));
 
 	interface Props {
 		onDone: () => void;
@@ -70,11 +70,7 @@
 		console.log('Chapters:', targetingState.chapterStates);
 
 		// Create a new uploader instance with current chapters
-		chapterUploader = new ChapterUploader(
-			[...targetingState.chapterStates],
-			authContext.apiToken,
-			targetingState.language
-		);
+		chapterUploader = new ChapterUploader(chapters, authContext.apiToken, targetingState.language);
 
 		isUploading = true;
 		working = true;

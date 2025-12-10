@@ -19,6 +19,7 @@ export class ChapterUploadingSeries {
 
 export enum ChapterPageStatus {
 	NOT_STARTED = 'NOT_STARTED',
+	SKIPPED = 'SKIPPED',
 	WAITING = 'WAITING',
 	UPLOADING = 'UPLOADING',
 	UPLOADED = 'UPLOADED',
@@ -172,6 +173,8 @@ export class ChapterState {
 	public manuallyEditedFields = $state<SvelteSet<string>>(new SvelteSet());
 	public originalFieldValues = $state<SvelteMap<string, unknown>>(new SvelteMap());
 
+	public isDeleted = $state<boolean>(false);
+
 	public constructor(
 		originalFolderPath: string | null,
 		chapterTitle: string | null,
@@ -184,7 +187,8 @@ export class ChapterState {
 		progress: number = 0,
 		error: string | null = null,
 		associatedUploadSessionId: string | null = null,
-		originalSelectedFolder: SelectedFolder | null = null
+		originalSelectedFolder: SelectedFolder | null = null,
+		isDeleted: boolean = false
 	) {
 		this.originalFolderPath = originalFolderPath;
 		this.chapterTitle = chapterTitle;
@@ -200,6 +204,7 @@ export class ChapterState {
 		this.originalSelectedFolder = originalSelectedFolder;
 		this.manuallyEditedFields = new SvelteSet();
 		this.originalFieldValues = new SvelteMap();
+		this.isDeleted = isDeleted;
 	}
 
 	public checkProgress(): void {
@@ -266,7 +271,14 @@ export class ChapterState {
 			const BATCH_SIZE = 10;
 			const CONCURRENT_CHUNKS = 3;
 
-			const pageChunks = cluster(this.pages, BATCH_SIZE);
+			const nonDeletedPages = this.pages.filter((page) => !page.isDeleted);
+			const deletedPages = this.pages.filter((page) => page.isDeleted);
+
+			for (const page of deletedPages) {
+				page.status = ChapterPageStatus.SKIPPED;
+			}
+
+			const pageChunks = cluster(nonDeletedPages, BATCH_SIZE);
 
 			// Process chunks in groups of 3 concurrently
 			for (let i = 0; i < pageChunks.length; i += CONCURRENT_CHUNKS) {
@@ -282,6 +294,7 @@ export class ChapterState {
 				// Validate none of the uploads failed across all chunks in this group
 				const failedPages: ChapterPageState[] = [];
 				for (const batch of chunkGroup) {
+					console.log('batch', batch);
 					failedPages.push(...batch.filter((page) => page.status === ChapterPageStatus.FAILED));
 				}
 
