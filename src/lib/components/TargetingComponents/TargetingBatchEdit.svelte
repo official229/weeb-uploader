@@ -2,6 +2,8 @@
 	import { ChapterUploadingGroup, type ChapterState } from '$lib/core/UploadingState.svelte';
 	import RangeProvider from '../Common/RangeProvider.svelte';
 	import TargetingEditableGroup from './TargetingEditableGroup.svelte';
+	import DropdownSingleSelector from '../Common/DropdownSingleSelector.svelte';
+	import { languages, getLanguageDisplayText } from './LanguageOptions.svelte';
 
 	interface Props {
 		chapters: ChapterState[];
@@ -18,6 +20,7 @@
 
 	let groups = $state<ChapterUploadingGroup>(new ChapterUploadingGroup());
 	let volumeValue = $state<string | null>(null);
+	let languageValue = $state<string>('en');
 
 	// starting index: 1
 	const groupRange = $state({
@@ -25,6 +28,10 @@
 		end: null
 	});
 	const volumeAssignmentRange = $state({
+		start: null,
+		end: null
+	});
+	const languageAssignmentRange = $state({
 		start: null,
 		end: null
 	});
@@ -162,6 +169,24 @@
 			// Skip if volume was manually edited
 			if (chapter.manuallyEditedFields.has('volume')) continue;
 			chapter.chapterVolume = volume;
+		}
+	}
+
+	function applyLanguageToRange() {
+		const start = (languageAssignmentRange.start ?? 1) - 1;
+		const end = (languageAssignmentRange.end ?? chapterStates.length) - 1;
+		const language = languageValue?.trim() || 'en';
+
+		for (let i = start; i <= end; i++) {
+			const chapter = chapterStates[i];
+			// Skip if language was manually edited
+			if (chapter.manuallyEditedFields.has('language')) continue;
+			// Update the original value to the new language so it's not marked as manually edited
+			// This ensures batch assignments don't trigger the manual edit detection
+			chapter.originalFieldValues.set('language', language);
+			chapter.language = language;
+			// Ensure it's not marked as manually edited
+			chapter.manuallyEditedFields.delete('language');
 		}
 	}
 </script>
@@ -346,6 +371,44 @@
 			<RangeProvider
 				bind:rangeStart={volumeAssignmentRange.start}
 				bind:rangeEnd={volumeAssignmentRange.end}
+				min={1}
+				max={chapterStates.length}
+			/>
+
+			<button
+				type="submit"
+				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
+			>
+				Apply
+			</button>
+		</div>
+	</form>
+
+	<!-- Language Assignment -->
+	<form
+		onsubmit={(e) => {
+			applyLanguageToRange();
+			e.preventDefault();
+		}}
+		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
+	>
+		<div class="flex flex-row gap-2 items-center">
+			<p class="font-bold">Assign Language to All Chapters:</p>
+			<DropdownSingleSelector
+				items={languages.map((l) => l.id)}
+				bind:selectedItem={languageValue}
+				getDisplayText={(id) => {
+					const lang = languages.find((l) => l.id === id);
+					return lang ? getLanguageDisplayText(lang) : id;
+				}}
+				class="text-sm"
+			/>
+		</div>
+
+		<div class="flex flex-row gap-2 items-center">
+			<RangeProvider
+				bind:rangeStart={languageAssignmentRange.start}
+				bind:rangeEnd={languageAssignmentRange.end}
 				min={1}
 				max={chapterStates.length}
 			/>

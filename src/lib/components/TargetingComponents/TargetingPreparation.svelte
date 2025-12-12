@@ -138,7 +138,9 @@
 			0,
 			null,
 			null,
-			new SelectedFolder(folderPath, folderPath, [definitionFile, ...remainingFiles], [], 0, 0)
+			new SelectedFolder(folderPath, folderPath, [definitionFile, ...remainingFiles], [], 0, 0),
+			false,
+			'en'
 		);
 
 		return chapter;
@@ -187,7 +189,14 @@
 						index.toString(),
 						new ChapterUploadingSeries(),
 						new ChapterUploadingGroup(),
-						pages
+						pages,
+						ChapterStatus.NOT_STARTED,
+						0,
+						null,
+						null,
+						null,
+						false,
+						'en'
 					);
 				})
 			);

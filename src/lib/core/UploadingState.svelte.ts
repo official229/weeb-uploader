@@ -158,6 +158,7 @@ export class ChapterState {
 	public chapterTitle = $state<string | null>(null);
 	public chapterVolume = $state<string | null>(null);
 	public chapterNumber = $state<string | null>(null);
+	public language = $state<string>('en');
 
 	public associatedSeries = $state<ChapterUploadingSeries | null>(null);
 	public associatedGroup = $state<ChapterUploadingGroup>(null as unknown as ChapterUploadingGroup);
@@ -188,7 +189,8 @@ export class ChapterState {
 		error: string | null = null,
 		associatedUploadSessionId: string | null = null,
 		originalSelectedFolder: SelectedFolder | null = null,
-		isDeleted: boolean = false
+		isDeleted: boolean = false,
+		language: string = 'en'
 	) {
 		this.originalFolderPath = originalFolderPath;
 		this.chapterTitle = chapterTitle;
@@ -205,6 +207,7 @@ export class ChapterState {
 		this.manuallyEditedFields = new SvelteSet();
 		this.originalFieldValues = new SvelteMap();
 		this.isDeleted = isDeleted;
+		this.language = language;
 	}
 
 	public checkProgress(): void {
@@ -217,7 +220,7 @@ export class ChapterState {
 		this.progress = progressTotal / totalPages;
 	}
 
-	public async upload(token: string, language: string): Promise<void> {
+	public async upload(token: string): Promise<void> {
 		this.status = ChapterStatus.IN_PROGRESS;
 		this.progress = 0;
 		this.error = null;
@@ -331,7 +334,7 @@ export class ChapterState {
 					chapter: this.chapterNumber?.toString() ?? '',
 					volume: this.chapterVolume?.toString() ?? '',
 					title: this.chapterTitle ?? '',
-					language: language
+					language: this.language
 				},
 				page_order: gatheredUploads
 			};

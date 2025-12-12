@@ -5,6 +5,8 @@
 	import TargetingEditableField from './TargetingEditableField.svelte';
 	import TargetedImageEditor from './TargetedImageEditor.svelte';
 	import TargetingEditableGroup from './TargetingEditableGroup.svelte';
+	import DropdownSingleSelector from '../Common/DropdownSingleSelector.svelte';
+	import { languages, getLanguageDisplayText } from './LanguageOptions.svelte';
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
@@ -22,6 +24,27 @@
 	const { index, chapter: ch = $bindable(), class: className }: Props = $props();
 
 	let isExpanded = $state(false);
+	let languageInitialized = $state(false);
+
+	$effect(() => {
+		// Store original language value on mount if not already stored
+		if (!languageInitialized && ch) {
+			if (!ch.originalFieldValues.has('language')) {
+				ch.originalFieldValues.set('language', ch.language);
+			}
+			languageInitialized = true;
+		}
+	});
+
+	$effect(() => {
+		// Track when language changes - mark as manually edited if different from original
+		if (languageInitialized && ch && ch.originalFieldValues.has('language')) {
+			const originalValue = ch.originalFieldValues.get('language') as string;
+			if (ch.language !== originalValue && !ch.manuallyEditedFields.has('language')) {
+				ch.manuallyEditedFields.add('language');
+			}
+		}
+	});
 
 	function toggleExpanded() {
 		isExpanded = !isExpanded;
@@ -39,6 +62,8 @@
 				ch.chapterNumber = originalValue as string | null;
 			} else if (fieldName === 'groups') {
 				ch.associatedGroup.groupIds = originalValue ? [...(originalValue as string[])] : null;
+			} else if (fieldName === 'language') {
+				ch.language = originalValue as string;
 			}
 
 			ch.manuallyEditedFields.delete(fieldName);
@@ -151,6 +176,33 @@
 						onclick={(e) => {
 							e.stopPropagation();
 							revertField('title');
+						}}
+						class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+						title="Revert manual edit"
+					>
+						<div class="i-mdi-undo h-4 w-4"></div>
+					</button>
+				{/if}
+			</div>
+
+			<!-- Language -->
+			<div class="flex flex-row gap-2 items-center">
+				<span class="text-sm text-gray-500">Language:</span>
+				<DropdownSingleSelector
+					items={languages.map((l) => l.id)}
+					bind:selectedItem={ch.language}
+					getDisplayText={(id) => {
+						const lang = languages.find((l) => l.id === id);
+						return lang ? getLanguageDisplayText(lang) : id;
+					}}
+					class="text-sm"
+				/>
+				{#if ch.manuallyEditedFields.has('language')}
+					<button
+						type="button"
+						onclick={(e) => {
+							e.stopPropagation();
+							revertField('language');
 						}}
 						class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
 						title="Revert manual edit"
