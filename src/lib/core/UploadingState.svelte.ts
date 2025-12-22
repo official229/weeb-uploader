@@ -94,7 +94,8 @@ export class ChapterPageState {
 					headers: {
 						Authorization: `Bearer ${authToken}`
 					},
-					onUploadProgress: onUploadProgress
+					onUploadProgress: onUploadProgress,
+					timeout: 60000 // 1 minute
 				})
 			);
 
@@ -252,7 +253,8 @@ export class ChapterState {
 				axios.post(`https://api.weebdex.org/upload/begin`, sessionRequest, {
 					headers: {
 						Authorization: `Bearer ${token}`
-					}
+					},
+					timeout: 10000 // 10 second timeout
 				})
 			);
 
@@ -346,7 +348,8 @@ export class ChapterState {
 					{
 						headers: {
 							Authorization: `Bearer ${token}`
-						}
+						},
+						timeout: 10000 // 10 second timeout
 					}
 				)
 			);
@@ -382,7 +385,8 @@ export class ChapterState {
 			axios.delete(`https://api.weebdex.org/upload/${this.associatedUploadSessionId}`, {
 				headers: {
 					Authorization: `Bearer ${token}`
-				}
+				},
+				timeout: 10000 // 10 second timeout
 			})
 		);
 	}
