@@ -84,8 +84,9 @@
 	<div class="flex flex-row flex-wrap gap-2 items-center">
 		{#each chapter.pages as page}
 			<div
-				class="relative h-7 min-w-7 grow-1 flex items-center justify-center border-1 border-surface rounded-md transition-all duration-300 overflow-clip"
+				class="relative h-7 min-w-7 grow-1 flex items-center justify-center border-1 border-surface rounded-md transition-all duration-300 overflow-clip group"
 				style="border-color: {getPageStatusColorValue(page.status)}"
+				title={page.error || `Page ${page.pageIndex + 1}`}
 			>
 				<div
 					class="h-full"
@@ -100,4 +101,25 @@
 			</div>
 		{/each}
 	</div>
+
+	{#if chapter.pages.some((page) => page.error)}
+		<div class="flex flex-col gap-1">
+			<p class="text-sm font-semibold text-red-500 dark:text-red-400">Page Errors:</p>
+			{#each chapter.pages.filter((page) => page.error) as page}
+				<p class="text-sm text-red-500 dark:text-red-400 pl-4">
+					Page {page.pageIndex + 1}: {page.error}
+				</p>
+			{/each}
+		</div>
+		<div class="flex flex-col gap-1 text-muted text-sm">
+			<p class="font-semibold">Common error causes include:</p>
+			<ul class="list-disc list-inside">
+				<li>
+					Unsupported file type: Only JPEG, PNG are supported. Watch out for incorrect file
+					extensions (.webp being renamed to .png).
+				</li>
+				<li>File too large: The maximum file size is 25MB.</li>
+			</ul>
+		</div>
+	{/if}
 </div>

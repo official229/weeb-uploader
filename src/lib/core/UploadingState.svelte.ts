@@ -95,7 +95,8 @@ export class ChapterPageState {
 						Authorization: `Bearer ${authToken}`
 					},
 					onUploadProgress: onUploadProgress,
-					timeout: 60000 // 1 minute
+					timeout: 60000, // 1 minute
+					validateStatus: (status) => status === 200 || status === 400 // Accept 200 and 400 status codes
 				})
 			);
 
@@ -112,21 +113,31 @@ export class ChapterPageState {
 				return;
 			}
 
-			// Map response IDs back to pages
+			// Map response IDs back to pages, checking for errors first
 			for (let i = 0; i < pages.length; i++) {
 				const responseItem = data[i];
-				if (!responseItem.id || typeof responseItem.id !== 'string') {
+				if (responseItem?.error) {
+					// File has an error field, mark as failed
 					pages[i].status = ChapterPageStatus.FAILED;
-					pages[i].error = `Failed to get upload session file ID: Invalid response format`;
+					pages[i].error = responseItem.error;
 					pages[i].progress = 0;
-				} else {
+				} else if (responseItem?.id && typeof responseItem.id === 'string') {
+					// File uploaded successfully
 					pages[i].associatedUploadSessionFileId = responseItem.id;
 					pages[i].status = ChapterPageStatus.UPLOADED;
 					pages[i].progress = 1;
 					pages[i].error = null;
+				} else {
+					// Invalid response format
+					pages[i].status = ChapterPageStatus.FAILED;
+					pages[i].error = `Failed to get upload session file ID: Invalid response format`;
+					pages[i].progress = 0;
 				}
 			}
 		} catch (error) {
+			console.error(error);
+
+			// Generic error handling
 			for (const page of pages) {
 				page.status = ChapterPageStatus.FAILED;
 				page.progress = 0;
@@ -265,6 +276,7 @@ export class ChapterState {
 				this.status = ChapterStatus.FAILED;
 				this.error = `Failed to get upload session ID: Invalid response format`;
 				this.progress = 0;
+				console.dir(data, { depth: null });
 				return;
 			}
 
@@ -304,12 +316,9 @@ export class ChapterState {
 				}
 
 				if (failedPages.length > 0) {
+					// Don't set chapter.error for page-level errors - let individual page errors be shown
+					// Only set chapter status to failed, but keep error null so UI can distinguish
 					this.status = ChapterStatus.FAILED;
-					const errorMessages = failedPages
-						.map((page) => page.error)
-						.filter((msg): msg is string => msg !== null)
-						.join('; ');
-					this.error = `Failed to upload some pages: ${errorMessages}`;
 					this.progress = 0;
 					await this.cleanupFailedUpload(token);
 					return;
