@@ -48,7 +48,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2 bg-gray-100 rounded-md p-4">
+<div class="flex flex-col gap-2 bg-surface rounded-md p-4">
 	<form
 		class="flex flex-col gap-2"
 		onsubmit={(e) => {
@@ -57,9 +57,11 @@
 		}}
 	>
 		<div class="flex flex-row gap-2 items-center grow-1">
-			<label for="search-query-input" class="text-sm font-medium">Search for a series:</label>
+			<label for="search-query-input" class="text-sm font-medium text-app"
+				>Search for a series:</label
+			>
 			<input
-				class="border border-gray-300 rounded-md p-2 grow-1 bg-white"
+				class="input-base grow-1"
 				id="search-query-input"
 				type="text"
 				bind:value={searchQuery}
@@ -71,11 +73,11 @@
 
 	<div class="grid grid-cols-2 gap-3">
 		{#if isSearching}
-			<p>Searching...</p>
+			<p class="text-app">Searching...</p>
 		{:else}
 			{#each searchResults as result}
 				<button
-					class="flex flex-row gap-4 clickable-hint rounded-md p-4 border border-gray-300 bg-white hover:bg-gray-50 text-left"
+					class="flex flex-row gap-4 clickable-hint rounded-md p-4 border border-surface bg-surface hover:bg-surface-hover text-left"
 					onclick={() => selectSeries(result.id, result.title)}
 				>
 					{#if getCoverUrl(result)}
@@ -86,27 +88,27 @@
 						/>
 					{:else}
 						<div
-							class="w-24 h-32 rounded bg-gray-200 flex-shrink-0 flex items-center justify-center"
+							class="w-24 h-32 rounded bg-surface-hover flex-shrink-0 flex items-center justify-center"
 						>
-							<div class="i-mdi-image-off h-8 w-8 text-gray-400"></div>
+							<div class="i-mdi-image-off h-8 w-8 text-muted"></div>
 						</div>
 					{/if}
 					<div class="flex-1 min-w-0 flex flex-col gap-2">
 						<div class="flex flex-row items-start justify-between gap-2">
 							<div class="flex-1 min-w-0">
-								<h3 class="text-lg font-bold text-gray-900 truncate">{result.title}</h3>
-								<p class="text-xs text-gray-500 mt-1">ID: {result.id}</p>
+								<h3 class="text-lg font-bold text-app truncate">{result.title}</h3>
+								<p class="text-xs text-muted mt-1">ID: {result.id}</p>
 							</div>
 							<div
-								class="i-mdi-plus h-6 w-6 text-green-500 flex-shrink-0"
+								class="i-mdi-plus h-6 w-6 text-green-500 dark:text-green-400 flex-shrink-0"
 								aria-label="Select series"
 								title="Select series"
 							></div>
 						</div>
 						{#if result.description}
-							<p class="text-sm text-gray-700 line-clamp-3">{result.description}</p>
+							<p class="text-sm text-app line-clamp-3">{result.description}</p>
 						{:else}
-							<p class="text-sm text-gray-400 italic">No description available</p>
+							<p class="text-sm text-muted italic">No description available</p>
 						{/if}
 					</div>
 				</button>

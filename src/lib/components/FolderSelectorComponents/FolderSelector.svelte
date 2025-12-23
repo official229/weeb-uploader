@@ -179,11 +179,11 @@
 
 <div class="flex flex-col justify-center items-center gap-4">
 	<button
-		class="flex flex-col justify-center items-center clickable-hint b-2 rounded-md p-4 {className} disabled:opacity-50 disabled:cursor-not-allowed"
+		class="flex flex-col justify-center items-center clickable-hint b-2 border-surface rounded-md p-4 {className} disabled:opacity-50 disabled:cursor-not-allowed"
 		onclick={onClick}
 		disabled={isExtracting}
 	>
-		<h1 class="font-bold">Folder Selector</h1>
+		<h1 class="font-bold text-app">Folder Selector</h1>
 		<input
 			class="hidden"
 			bind:this={inputElementRef}
@@ -196,11 +196,11 @@
 
 	{#if isExtracting}
 		<div class="flex flex-col justify-center items-center gap-2">
-			<div class="animate-spin rounded-full h-8 w-8 outline-dotted outline-5"></div>
-			<p class="text-sm text-gray-500">Processing files...</p>
+			<div class="animate-spin rounded-full h-8 w-8 outline-dotted outline-5 border-surface"></div>
+			<p class="text-sm text-muted">Processing files...</p>
 
 			{#if currentlyProcessingFile}
-				<p class="text-sm text-gray-500">{currentlyProcessingFile}</p>
+				<p class="text-sm text-muted">{currentlyProcessingFile}</p>
 			{/if}
 		</div>
 	{/if}

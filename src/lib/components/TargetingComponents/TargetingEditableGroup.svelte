@@ -115,7 +115,7 @@
 	<button
 		bind:this={buttonRef}
 		type="button"
-		class="flex flex-row gap-2 bg-gray-100 hover:bg-gray-200 cursor-pointer rounded-md px-1 border border-gray-300"
+		class="flex flex-row gap-2 bg-surface hover:bg-surface-hover cursor-pointer rounded-md px-1 border border-surface"
 		onclick={(e) => {
 			e.stopPropagation();
 			startEditing();
@@ -123,7 +123,7 @@
 		aria-label="Edit groups"
 	>
 		{#if boundGroups.groupIds && boundGroups.groupIds.length > 0}
-			<p>
+			<p class="text-app">
 				{boundGroups.groupIds
 					.map((groupId) => {
 						const group = availableGroups.find((group) => group.groupId === groupId);
@@ -132,7 +132,7 @@
 					.join(', ')}
 			</p>
 		{:else}
-			<p>No group</p>
+			<p class="text-muted">No group</p>
 		{/if}
 	</button>
 </div>

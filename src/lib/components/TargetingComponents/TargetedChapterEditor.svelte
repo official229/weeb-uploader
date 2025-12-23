@@ -77,20 +77,23 @@
 </script>
 
 <div
-	class={['flex flex-col gap-2 justify-between overflow-clip rounded-lg bg-gray-200', className]}
+	class={[
+		'flex flex-col gap-2 justify-between overflow-clip rounded-lg bg-surface-hover',
+		className
+	]}
 >
 	<!-- Chapter header -->
 	<div class="flex flex-row items-center justify-between w-full px-2 py-1 gap-2">
 		<div class="flex flex-col gap-2 flex-1">
 			<!-- Index, Volume, chapter number, and Groups -->
 			<div class="flex flex-row gap-2 items-center">
-				<span class="text-sm text-gray-500 mr-3">{index + 1}.</span>
+				<span class="text-sm text-muted mr-3">{index + 1}.</span>
 
 				<div class="flex flex-row gap-2 items-center">
-					<span class="text-sm text-gray-500">Vol.</span>
+					<span class="text-sm text-muted">Vol.</span>
 					<TargetingEditableField
 						bind:value={ch.chapterVolume}
-						textClass="text-sm text-gray-500"
+						textClass="text-sm text-muted"
 						fieldName="volume"
 						chapter={ch}
 					/>
@@ -101,7 +104,7 @@
 								e.stopPropagation();
 								revertField('volume');
 							}}
-							class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+							class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-400 dark:hover:bg-yellow-500 text-white rounded-md px-1 py-0.5 text-xs"
 							title="Revert manual edit"
 						>
 							<div class="i-mdi-undo h-4 w-4"></div>
@@ -109,10 +112,10 @@
 					{/if}
 				</div>
 				<div class="flex flex-row gap-2 items-center">
-					<span class="text-sm text-gray-500">Ch.</span>
+					<span class="text-sm text-muted">Ch.</span>
 					<TargetingEditableField
 						bind:value={ch.chapterNumber}
-						textClass="text-sm text-gray-500"
+						textClass="text-sm text-muted"
 						fieldName="chapterNumber"
 						chapter={ch}
 					/>
@@ -123,7 +126,7 @@
 								e.stopPropagation();
 								revertField('chapterNumber');
 							}}
-							class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+							class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-400 dark:hover:bg-yellow-500 text-white rounded-md px-1 py-0.5 text-xs"
 							title="Revert manual edit"
 						>
 							<div class="i-mdi-undo h-4 w-4"></div>
@@ -132,7 +135,7 @@
 				</div>
 
 				<div class="flex flex-row gap-2 items-center">
-					<span class="text-sm text-gray-500">Groups:</span>
+					<span class="text-sm text-muted">Groups:</span>
 					<TargetingEditableGroup
 						bind:groups={ch.associatedGroup}
 						fieldName="groups"
@@ -145,7 +148,7 @@
 								e.stopPropagation();
 								revertField('groups');
 							}}
-							class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+							class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-400 dark:hover:bg-yellow-500 text-white rounded-md px-1 py-0.5 text-xs"
 							title="Revert manual edit"
 						>
 							<div class="i-mdi-undo h-4 w-4"></div>
@@ -156,17 +159,17 @@
 
 			<!-- Original Folder Path -->
 			<div class="flex flex-row gap-2 items-center">
-				<span class="text-sm text-gray-500">Original:</span>
-				<p class="text-sm text-gray-500">{ch.originalFolderPath}</p>
+				<span class="text-sm text-muted">Original:</span>
+				<p class="text-sm text-muted">{ch.originalFolderPath}</p>
 			</div>
 
 			<!-- Title -->
 			<div class="flex flex-row gap-2 items-center">
-				<span class="text-sm text-gray-500">Title:</span>
+				<span class="text-sm text-muted">Title:</span>
 				<TargetingEditableField
 					bind:value={ch.chapterTitle}
 					class=""
-					textClass="text-xl font-bold"
+					textClass="text-xl font-bold text-app"
 					fieldName="title"
 					chapter={ch}
 				/>
@@ -177,7 +180,7 @@
 							e.stopPropagation();
 							revertField('title');
 						}}
-						class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+						class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-400 dark:hover:bg-yellow-500 text-white rounded-md px-1 py-0.5 text-xs"
 						title="Revert manual edit"
 					>
 						<div class="i-mdi-undo h-4 w-4"></div>
@@ -187,7 +190,7 @@
 
 			<!-- Language -->
 			<div class="flex flex-row gap-2 items-center">
-				<span class="text-sm text-gray-500">Language:</span>
+				<span class="text-sm text-muted">Language:</span>
 				<DropdownSingleSelector
 					items={languages.map((l) => l.id)}
 					bind:selectedItem={ch.language}
@@ -204,7 +207,7 @@
 							e.stopPropagation();
 							revertField('language');
 						}}
-						class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white rounded-md px-1 py-0.5 text-xs"
+						class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-400 dark:hover:bg-yellow-500 text-white rounded-md px-1 py-0.5 text-xs"
 						title="Revert manual edit"
 					>
 						<div class="i-mdi-undo h-4 w-4"></div>
@@ -220,9 +223,9 @@
 			onclick={deleteChapter}
 		>
 			{#if ch.isDeleted}
-				<div class="i-mdi-restore h-10 w-10 bg-green-500 hover:bg-green-600 text-white"></div>
+				<div class="i-mdi-restore h-10 w-10 btn-success"></div>
 			{:else}
-				<div class="i-mdi-delete h-10 w-10 bg-red-500 hover:bg-red-600 text-white"></div>
+				<div class="i-mdi-delete h-10 w-10 btn-danger"></div>
 			{/if}
 		</button>
 		<!-- Images preview indicator -->
@@ -232,16 +235,16 @@
 			onclick={toggleExpanded}
 		>
 			{#if isExpanded}
-				<div aria-label="Collapse" class="w-10 h-10 i-mdi-chevron-up"></div>
+				<div aria-label="Collapse" class="w-10 h-10 i-mdi-chevron-up text-app"></div>
 			{:else}
-				<div aria-label="Expand" class="w-10 h-10 i-mdi-chevron-down"></div>
+				<div aria-label="Expand" class="w-10 h-10 i-mdi-chevron-down text-app"></div>
 			{/if}
 		</button>
 	</div>
 
 	<!-- Chapter Images Preview -->
 	{#if isExpanded}
-		<div class="w-full bg-gray-300 rounded-lg p-2">
+		<div class="w-full bg-surface rounded-lg p-2">
 			<TargetedImageEditor bind:pages={ch.pages} />
 		</div>
 	{/if}

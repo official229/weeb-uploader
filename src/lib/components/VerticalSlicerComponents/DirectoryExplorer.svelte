@@ -25,7 +25,7 @@
 	<!-- Folder Header -->
 	<button
 		type="button"
-		class="flex items-center gap-2 py-1 px-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors w-full text-left"
+		class="flex items-center gap-2 py-1 px-2 hover:bg-surface-hover rounded transition-colors w-full text-left"
 		style="padding-left: {indent};"
 		onclick={toggleExpanded}
 		disabled={!hasContent}
@@ -34,9 +34,9 @@
 		{#if hasContent}
 			<span class="w-4 h-4 flex items-center justify-center">
 				{#if isExpanded}
-					<span class="i-mdi-chevron-down text-gray-600 dark:text-gray-400"></span>
+					<span class="i-mdi-chevron-down text-muted"></span>
 				{:else}
-					<span class="i-mdi-chevron-right text-gray-600 dark:text-gray-400"></span>
+					<span class="i-mdi-chevron-right text-muted"></span>
 				{/if}
 			</span>
 		{:else}
@@ -47,7 +47,7 @@
 		<span class="i-mdi-folder text-blue-500 dark:text-blue-400"></span>
 
 		<!-- Folder Name -->
-		<span class="font-medium text-gray-900 dark:text-gray-100">
+		<span class="font-medium text-app">
 			{folder.name || 'Root'}
 		</span>
 
@@ -59,7 +59,7 @@
 		</span>
 
 		<!-- File/Folder Count -->
-		<span class="text-sm text-gray-500 dark:text-gray-400 ml-auto">
+		<span class="text-sm text-muted ml-auto">
 			({folder.files.length} file{folder.files.length !== 1 ? 's' : ''}, {folder.folders.length} folder{folder
 				.folders.length !== 1
 				? 's'
@@ -78,13 +78,13 @@
 			<!-- Files -->
 			{#each folder.files as selectedFile}
 				<div
-					class="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 dark:hover:bg-gray-900 rounded transition-colors"
+					class="flex items-center gap-2 py-1 px-2 hover:bg-surface-hover rounded transition-colors"
 					style="padding-left: {indent};"
 				>
 					<span class="w-4 h-4"></span>
-					<span class="i-mdi-file text-gray-500 dark:text-gray-400"></span>
-					<span class="text-sm text-gray-700 dark:text-gray-300">{selectedFile.file.name}</span>
-					<span class="text-xs text-gray-500 dark:text-gray-500 ml-auto">
+					<span class="i-mdi-file text-muted"></span>
+					<span class="text-sm text-app">{selectedFile.file.name}</span>
+					<span class="text-xs text-muted ml-auto">
 						{(selectedFile.file.size / 1024).toFixed(2)} KB
 					</span>
 				</div>

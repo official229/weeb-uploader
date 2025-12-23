@@ -48,7 +48,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2 bg-gray-100 rounded-md p-4">
+<div class="flex flex-col gap-2 bg-surface rounded-md p-4">
 	<form
 		class="flex flex-col gap-2"
 		onsubmit={(e) => {
@@ -57,9 +57,11 @@
 		}}
 	>
 		<div class="flex flex-row gap-2 items-center grow-1">
-			<label for="search-query-input" class="text-sm font-medium">Search for a group:</label>
+			<label for="search-query-input" class="text-sm font-medium text-app"
+				>Search for a group:</label
+			>
 			<input
-				class="border border-gray-300 rounded-md p-2 grow-1 bg-white"
+				class="input-base grow-1"
 				id="search-query-input"
 				type="text"
 				bind:value={searchQuery}
@@ -71,19 +73,19 @@
 
 	<div class="grid grid-cols-2 gap-2">
 		{#if isSearching}
-			<p>Searching...</p>
+			<p class="text-app">Searching...</p>
 		{:else}
 			{#each searchResults as result}
 				<button
-					class="flex flex-row gap-2 clickable-hint rounded-md p-4 border border-gray-300"
+					class="flex flex-row gap-2 clickable-hint rounded-md p-4 border border-surface"
 					onclick={() => addGroup(result.id, result.name)}
 				>
 					<div class="flex flex-row gap-2 items-center">
-						<p class="text-sm text-gray-500">{result.id}</p>
-						<p class="text-sm font-bold">{result.name}</p>
+						<p class="text-sm text-muted">{result.id}</p>
+						<p class="text-sm font-bold text-app">{result.name}</p>
 					</div>
 					<div
-						class="i-mdi-plus h-5 w-5 bg-green-500"
+						class="i-mdi-plus h-5 w-5 bg-green-500 dark:bg-green-400"
 						aria-label="Add group"
 						title="Add group"
 					></div>

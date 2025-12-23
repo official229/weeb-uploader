@@ -111,10 +111,10 @@
 
 <div class="flex flex-col gap-2">
 	{#if seriesData}
-		<div class="flex flex-col gap-2 bg-gray-100 rounded-md p-4">
+		<div class="flex flex-col gap-2 bg-surface rounded-md p-4">
 			<div class="flex flex-row gap-2 items-center">
-				<span class="i-mdi-check text-green-500 text-2xl"></span>
-				<h3 class="text-lg font-semibold">Series Validated</h3>
+				<span class="i-mdi-check text-green-500 dark:text-green-400 text-2xl"></span>
+				<h3 class="text-lg font-semibold text-app">Series Validated</h3>
 				<button
 					type="button"
 					onclick={reset}
@@ -122,7 +122,7 @@
 					aria-label="Reset"
 					title="Reset"
 				>
-					<div class="i-mdi-refresh h-5 w-5"></div>
+					<div class="i-mdi-refresh h-5 w-5 text-app"></div>
 				</button>
 			</div>
 			<div class="flex flex-row gap-2">
@@ -133,21 +133,21 @@
 						class="w-64 h-64 object-cover"
 					/>
 				{:else}
-					<div class="w-64 h-64 bg-gray-200 rounded-md i-mdi-image-outline"></div>
+					<div class="w-64 h-64 bg-surface-hover rounded-md i-mdi-image-outline text-muted"></div>
 				{/if}
 				<div class="flex flex-col gap-2">
-					<p class="text-sm font-bold">ID: {seriesData.id}</p>
-					<p class="text-sm font-bold">{seriesData.title}</p>
-					<p class="text-sm text-gray-500">{seriesData.description}</p>
+					<p class="text-sm font-bold text-app">ID: {seriesData.id}</p>
+					<p class="text-sm font-bold text-app">{seriesData.title}</p>
+					<p class="text-sm text-muted">{seriesData.description}</p>
 				</div>
 			</div>
 		</div>
 	{:else}
-		<div class="flex flex-col gap-2 bg-gray-100 rounded-md p-4">
+		<div class="flex flex-col gap-2 bg-surface rounded-md p-4">
 			<div class="flex flex-row gap-2 items-center">
-				<label for="series-id-input" class="text-sm font-medium">Series ID:</label>
+				<label for="series-id-input" class="text-sm font-medium text-app">Series ID:</label>
 				<input
-					class="border border-gray-300 rounded-md p-2 grow-1 bg-white"
+					class="input-base grow-1"
 					id="series-id-input"
 					type="text"
 					bind:value={inputValue}
@@ -166,10 +166,10 @@
 		</div>
 
 		{#if validationError}
-			<p class="text-red-500">{validationError}</p>
+			<p class="text-red-500 dark:text-red-400">{validationError}</p>
 		{/if}
 		{#if isValidating}
-			<p>Validating...</p>
+			<p class="text-app">Validating...</p>
 		{/if}
 	{/if}
 </div>

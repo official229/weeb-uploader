@@ -192,7 +192,7 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<p>
+	<p class="text-app">
 		Here you have the ability to batch apply changes to all chapters at once.
 		<br />
 		For title / volume / chapter number extraction, Regex is used, where the first capture group will
@@ -210,21 +210,13 @@
 		Some regexes are prefilled for you, but you can change them for your specific needs.
 	</p>
 
-	<div class="flex flex-row gap-5 bg-gray-100 rounded-md p-2 mb-10 items-center">
-		<p class="font-bold">Quick unfuckup actions:</p>
+	<div class="flex flex-row gap-5 bg-surface rounded-md p-2 mb-10 items-center">
+		<p class="font-bold text-app">Quick unfuckup actions:</p>
 
-		<button
-			type="button"
-			class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white rounded-md px-2 py-1"
-			onclick={clearTitles}
-		>
+		<button type="button" class="btn-neutral rounded-md px-2 py-1" onclick={clearTitles}>
 			Clear Titles
 		</button>
-		<button
-			type="button"
-			class="cursor-pointer bg-gray-500 hover:bg-gray-600 text-white rounded-md px-2 py-1"
-			onclick={resetTitles}
-		>
+		<button type="button" class="btn-neutral rounded-md px-2 py-1" onclick={resetTitles}>
 			Reset Titles
 		</button>
 	</div>
@@ -235,22 +227,22 @@
 			applyTitleRegex();
 			e.preventDefault();
 		}}
-		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
+		class="flex flex-row gap-2 bg-surface rounded-md p-2 items-center justify-between"
 	>
 		<div class="flex flex-row gap-2 items-center grow-1">
-			<p class="font-bold">Extract Title Regex:</p>
+			<p class="font-bold text-app">Extract Title Regex:</p>
 			<input
 				type="text"
 				bind:value={titleRegex}
 				placeholder="^(.+?)\s+-\s+Vol"
-				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+				class="input-base grow-1"
 			/>
 		</div>
 
 		<div class="flex flex-row gap-2 items-center">
 			<label class="flex flex-row gap-1 items-center whitespace-nowrap mr-3">
 				<input type="checkbox" bind:checked={titleCaseSensitive} class="w-5 h-5" />
-				<span>Case Sensitive</span>
+				<span class="text-app">Case Sensitive</span>
 			</label>
 
 			<RangeProvider
@@ -260,12 +252,7 @@
 				max={chapterStates.length}
 			/>
 
-			<button
-				type="submit"
-				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-			>
-				Apply
-			</button>
+			<button type="submit" class="btn-primary rounded-md px-2 py-1"> Apply </button>
 		</div>
 	</form>
 
@@ -275,22 +262,22 @@
 			applyVolumeRegex();
 			e.preventDefault();
 		}}
-		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
+		class="flex flex-row gap-2 bg-surface rounded-md p-2 items-center justify-between"
 	>
 		<div class="flex flex-row gap-2 items-center grow-1">
-			<p class="font-bold">Extract Volume Regex:</p>
+			<p class="font-bold text-app">Extract Volume Regex:</p>
 			<input
 				type="text"
 				bind:value={volumeRegex}
 				placeholder="Vol\.? ?(\d+)"
-				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+				class="input-base grow-1"
 			/>
 		</div>
 
 		<div class="flex flex-row gap-2 items-center">
 			<label class="flex flex-row gap-1 items-center whitespace-nowrap mr-3">
 				<input type="checkbox" bind:checked={volumeCaseSensitive} class="w-5 h-5" />
-				<span>Case Sensitive</span>
+				<span class="text-app">Case Sensitive</span>
 			</label>
 
 			<RangeProvider
@@ -300,12 +287,7 @@
 				max={chapterStates.length}
 			/>
 
-			<button
-				type="submit"
-				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-			>
-				Apply
-			</button>
+			<button type="submit" class="btn-primary rounded-md px-2 py-1"> Apply </button>
 		</div>
 	</form>
 
@@ -315,22 +297,22 @@
 			applyChapterNumberRegex();
 			e.preventDefault();
 		}}
-		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
+		class="flex flex-row gap-2 bg-surface rounded-md p-2 items-center justify-between"
 	>
 		<div class="flex flex-row gap-2 items-center grow-1">
-			<p class="font-bold">Extract Chapter Number Regex:</p>
+			<p class="font-bold text-app">Extract Chapter Number Regex:</p>
 			<input
 				type="text"
 				bind:value={chapterRegex}
 				placeholder="Ch\.? ?(\d+)"
-				class="border grow-1 bg-white border-gray-300 rounded-md p-1"
+				class="input-base grow-1"
 			/>
 		</div>
 
 		<div class="flex flex-row gap-2 items-center">
 			<label class="flex flex-row gap-1 items-center whitespace-nowrap mr-3">
 				<input type="checkbox" bind:checked={chapterCaseSensitive} class="w-5 h-5" />
-				<span>Case Sensitive</span>
+				<span class="text-app">Case Sensitive</span>
 			</label>
 
 			<RangeProvider
@@ -340,12 +322,7 @@
 				max={chapterStates.length}
 			/>
 
-			<button
-				type="submit"
-				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-			>
-				Apply
-			</button>
+			<button type="submit" class="btn-primary rounded-md px-2 py-1"> Apply </button>
 		</div>
 	</form>
 
@@ -355,15 +332,15 @@
 			applyVolumeToRange();
 			e.preventDefault();
 		}}
-		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
+		class="flex flex-row gap-2 bg-surface rounded-md p-2 items-center justify-between"
 	>
 		<div class="flex flex-row gap-2 items-center">
-			<p class="font-bold">Assign Volume to All Chapters:</p>
+			<p class="font-bold text-app">Assign Volume to All Chapters:</p>
 			<input
 				type="text"
 				bind:value={volumeValue}
 				placeholder="Volume number"
-				class="border bg-white border-gray-300 rounded-md p-1 min-w-20"
+				class="input-base min-w-20"
 			/>
 		</div>
 
@@ -375,12 +352,7 @@
 				max={chapterStates.length}
 			/>
 
-			<button
-				type="submit"
-				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-			>
-				Apply
-			</button>
+			<button type="submit" class="btn-primary rounded-md px-2 py-1"> Apply </button>
 		</div>
 	</form>
 
@@ -390,10 +362,10 @@
 			applyLanguageToRange();
 			e.preventDefault();
 		}}
-		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
+		class="flex flex-row gap-2 bg-surface rounded-md p-2 items-center justify-between"
 	>
 		<div class="flex flex-row gap-2 items-center">
-			<p class="font-bold">Assign Language to All Chapters:</p>
+			<p class="font-bold text-app">Assign Language to All Chapters:</p>
 			<DropdownSingleSelector
 				items={languages.map((l) => l.id)}
 				bind:selectedItem={languageValue}
@@ -413,12 +385,7 @@
 				max={chapterStates.length}
 			/>
 
-			<button
-				type="submit"
-				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-			>
-				Apply
-			</button>
+			<button type="submit" class="btn-primary rounded-md px-2 py-1"> Apply </button>
 		</div>
 	</form>
 
@@ -428,10 +395,10 @@
 			applyGroupsToRange();
 			e.preventDefault();
 		}}
-		class="flex flex-row gap-2 bg-gray-100 rounded-md p-2 items-center justify-between"
+		class="flex flex-row gap-2 bg-surface rounded-md p-2 items-center justify-between"
 	>
 		<div class="flex flex-row gap-2">
-			<p class="font-bold">Assign Groups to All Chapters:</p>
+			<p class="font-bold text-app">Assign Groups to All Chapters:</p>
 			<TargetingEditableGroup bind:groups />
 		</div>
 
@@ -443,18 +410,9 @@
 				max={chapterStates.length}
 			/>
 
-			<button
-				type="submit"
-				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-			>
-				Set Group(s)
-			</button>
+			<button type="submit" class="btn-primary rounded-md px-2 py-1"> Set Group(s) </button>
 
-			<button
-				type="button"
-				class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
-				onclick={appendGroupsToRange}
-			>
+			<button type="button" class="btn-primary rounded-md px-2 py-1" onclick={appendGroupsToRange}>
 				Append Group(s)
 			</button>
 		</div>

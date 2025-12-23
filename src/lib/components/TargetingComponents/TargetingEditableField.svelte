@@ -78,12 +78,7 @@
 			}}
 			class="flex flex-row gap-2 items-center w-full"
 		>
-			<input
-				bind:this={inputRef}
-				type="text"
-				bind:value={editValue}
-				class="grow-1 border border-gray-500 rounded-md p-1 bg-white"
-			/>
+			<input bind:this={inputRef} type="text" bind:value={editValue} class="input-base grow-1" />
 			<button
 				onclick={(e) => {
 					e.stopPropagation();
@@ -91,11 +86,11 @@
 				}}
 				type="button"
 				aria-label="Cancel"
-				class="cursor-pointer bg-red-500 rounded-md p-1"
+				class="btn-danger p-1"
 			>
 				<div class="i-mdi-close h-5 w-5 text-white"></div>
 			</button>
-			<button type="submit" aria-label="Save" class="cursor-pointer bg-green-500 rounded-md p-1">
+			<button type="submit" aria-label="Save" class="btn-success p-1">
 				<div class="i-mdi-check h-5 w-5 text-white"></div>
 			</button>
 		</form>
@@ -106,7 +101,7 @@
 				startEditing();
 			}}
 			class={[
-				'cursor-pointer hover:text-blue-500 px-2 min-w-5 min-h-5 bg-gray-100 rounded-md',
+				'cursor-pointer hover:text-blue-500 dark:hover:text-blue-400 px-2 min-w-5 min-h-5 bg-surface rounded-md',
 				textClass
 			]}
 		>

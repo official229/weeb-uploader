@@ -21,7 +21,7 @@
 	});
 </script>
 
-<div class="flex flex-row gap-2 items-center">
+<div class="flex flex-row gap-2 items-center text-app">
 	<p>Range:</p>
 	<input
 		type="number"
@@ -29,7 +29,7 @@
 		placeholder="Start"
 		{min}
 		max={rangeEnd !== null ? Math.min(max, rangeEnd) : max}
-		class="border grow-1 bg-white border-gray-300 rounded-md p-1 min-w-10"
+		class="input-base grow-1 min-w-10"
 	/>
 	<p>to</p>
 	<input
@@ -38,6 +38,6 @@
 		placeholder="End"
 		min={rangeStart !== null ? Math.max(min, rangeStart) : min}
 		{max}
-		class="border grow-1 bg-white border-gray-300 rounded-md p-1 min-w-10"
+		class="input-base grow-1 min-w-10"
 	/>
 </div>

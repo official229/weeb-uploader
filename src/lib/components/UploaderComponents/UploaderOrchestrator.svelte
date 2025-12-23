@@ -97,23 +97,26 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<h1 class="text-2xl font-bold">Upload Progress</h1>
+	<h1 class="text-2xl font-bold text-app">Upload Progress</h1>
 
 	<div class="flex flex-row gap-2">
 		<button
 			disabled={isUploading}
-			class="cursor-pointer disabled:cursor-not-allowed bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+			class="btn-primary disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-md"
 			onclick={startUpload}>Start</button
 		>
 	</div>
 
-	<div class="flex flex-col gap-2 bg-gray-300 rounded-md p-2">
-		<p class="text-sm">Chapters: {chaptersCompleted} / {chaptersTotal}</p>
-		<p class="text-sm">Pages: {pagesUploaded} / {pagesTotal}</p>
+	<div class="flex flex-col gap-2 bg-surface rounded-md p-2">
+		<p class="text-sm text-app">Chapters: {chaptersCompleted} / {chaptersTotal}</p>
+		<p class="text-sm text-app">Pages: {pagesUploaded} / {pagesTotal}</p>
 
-		<div class="relative w-full h-5 bg-gray-200 rounded-md overflow-clip">
-			<div class="h-full bg-blue-300" style="width: {(pagesUploaded / pagesTotal) * 100}%"></div>
-			<p class="text-xs absolute inset-0 text-black flex items-center justify-center">
+		<div class="relative w-full h-5 bg-surface-hover rounded-md overflow-clip">
+			<div
+				class="h-full bg-blue-500 dark:bg-blue-400"
+				style="width: {(pagesUploaded / pagesTotal) * 100}%"
+			></div>
+			<p class="text-xs absolute inset-0 text-app flex items-center justify-center">
 				{prettyFormatProgress(pagesUploaded / pagesTotal)}
 			</p>
 		</div>

@@ -72,19 +72,19 @@
 </script>
 
 <div class="flex flex-col gap-2 {className}">
-	<h1 class="text-xl font-bold">Vertical Slicer</h1>
+	<h1 class="text-xl font-bold text-app">Vertical Slicer</h1>
 
 	<div class="flex flex-row h-full w-full gap-1">
 		<!-- Left Panel: Directory Explorer -->
 		<div style="width: {leftWidth}%;">
-			<h2 class="text-md font-bold text-right">Directory Explorer</h2>
+			<h2 class="text-md font-bold text-right text-app">Directory Explorer</h2>
 		</div>
 
 		<div class="w-2"></div>
 
 		<!-- Right Panel -->
 		<div class="flex flex-1">
-			<h2 class="text-md font-bold">Slicer</h2>
+			<h2 class="text-md font-bold text-app">Slicer</h2>
 		</div>
 	</div>
 
@@ -97,7 +97,7 @@
 		<!-- Resize Handle -->
 		<button
 			type="button"
-			class="w-2 bg-gray-300 clickable-hint cursor-col-resize relative group border-0 p-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+			class="w-2 bg-surface-hover clickable-hint cursor-col-resize relative group border-0 p-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
 			onmousedown={handleMouseDown}
 			aria-label="Resize panels"
 		>
@@ -105,9 +105,9 @@
 			<div
 				class="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
 			>
-				<div class="w-0.5 h-0.5 bg-gray-500 dark:bg-gray-400 rounded-full"></div>
-				<div class="w-0.5 h-0.5 bg-gray-500 dark:bg-gray-400 rounded-full"></div>
-				<div class="w-0.5 h-0.5 bg-gray-500 dark:bg-gray-400 rounded-full"></div>
+				<div class="w-0.5 h-0.5 text-muted rounded-full bg-current"></div>
+				<div class="w-0.5 h-0.5 text-muted rounded-full bg-current"></div>
+				<div class="w-0.5 h-0.5 text-muted rounded-full bg-current"></div>
 			</div>
 		</button>
 
@@ -119,7 +119,7 @@
 
 	{#if slicedFolders}
 		<div>
-			<h2 class="text-md font-bold">
+			<h2 class="text-md font-bold text-app">
 				Vertical Slice Preview ({activeSelectedSlicedFolders.length}
 				selected)
 			</h2>
@@ -132,7 +132,7 @@
 
 		<button
 			type="button"
-			class="cursor-pointer w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+			class="btn-primary w-full px-6 py-3 font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
 			disabled={activeSelectedSlicedFolders.length === 0}
 			onclick={onSubmit}
 		>

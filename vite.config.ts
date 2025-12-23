@@ -5,7 +5,7 @@ import UnoCSS from '@unocss/svelte-scoped/vite';
 export default defineConfig({
 	plugins: [
 		UnoCSS({
-			injectReset: '@unocss/reset/normalize.css',
+			injectReset: '@unocss/reset/normalize.css'
 		}),
 		sveltekit()
 	]

@@ -170,7 +170,7 @@
 	<div
 		bind:this={dropdownRef}
 		class={[
-			'fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg max-h-64 overflow-y-auto min-w-64',
+			'fixed z-[9999] bg-surface border border-surface rounded-md shadow-lg max-h-64 overflow-y-auto min-w-64 text-app',
 			className
 		]}
 		style="top: {dropdownPosition.top}px; left: {dropdownPosition.left}px; width: {dropdownPosition.width}px;"
@@ -182,39 +182,39 @@
 			<button
 				type="button"
 				onclick={() => clearSelection()}
-				class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors flex items-center gap-2 {selectedItems ===
+				class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors flex items-center gap-2 {selectedItems ===
 					null || selectedItems.length === 0
-					? 'bg-red-50 font-medium'
+					? 'bg-red-50 dark:bg-red-900/30 font-medium'
 					: ''}"
 			>
 				<span>Clear Selection</span>
 			</button>
 
 			{#if items.length > 0}
-				<div class="border-t border-gray-200 my-1"></div>
+				<div class="border-t border-muted my-1"></div>
 			{/if}
 
 			<!-- Group Options -->
 			{#each items as group}
 				<label
-					class="flex items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 rounded cursor-pointer transition-colors {isSelected(
+					class="flex items-center gap-2 px-3 py-2 text-sm text-app hover:bg-surface-hover rounded cursor-pointer transition-colors {isSelected(
 						group
 					)
-						? 'bg-blue-50'
+						? 'bg-blue-50 dark:bg-blue-900/20'
 						: ''}"
 				>
 					<input
 						type="checkbox"
 						checked={isSelected(group)}
 						onchange={() => toggleItem(group)}
-						class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+						class="w-4 h-4 text-blue-600 dark:text-blue-400 border-surface rounded focus:ring-blue-500"
 					/>
-					<span class="flex-1">{group.groupName}</span>
+					<span class="flex-1 text-app">{group.groupName}</span>
 				</label>
 			{/each}
 
 			{#if items.length === 0}
-				<div class="px-3 py-2 text-sm text-gray-500">No items available</div>
+				<div class="px-3 py-2 text-sm text-muted">No items available</div>
 			{/if}
 		</div>
 	</div>

@@ -98,12 +98,12 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2 p-4 bg-gray-100 rounded-lg">
-	<h2 class="text-xl font-semibold">API Authentication</h2>
+<div class="flex flex-col gap-2 p-4 bg-surface rounded-lg">
+	<h2 class="text-xl font-semibold text-app">API Authentication</h2>
 
 	{#if validated === true}
 		<div class="flex flex-row gap-2 items-center">
-			<p>API access validated successfully</p>
+			<p class="text-app">API access validated successfully</p>
 			<button
 				disabled={isValidating}
 				class="clickable-hint p-2 rounded-md"
@@ -112,30 +112,27 @@
 			>
 		</div>
 	{:else}
-		<p>
+		<p class="text-app">
 			Enter your API token to validate your access to the WeebDex API. You can find this token by
 			opening up the developer tools (F12 on keyboard) and copying the value of the
 			"ory_kratos_session" cookie.
 		</p>
 
-		<a
-			href={`${resolve('/docs')}#api-token-where`}
-			class="text-sm text-gray-500 hover:text-blue-500"
-		>
+		<a href={`${resolve('/docs')}#api-token-where`} class="text-sm text-muted link-primary">
 			If you're having trouble, click here for the relevant tutorial & docs section (opens in new
 			tab).
-			<span class="text-gray-500 w-4 h-4 i-mdi-arrow-top-right inline-block align-middle"></span>
+			<span class="text-muted w-4 h-4 i-mdi-arrow-top-right inline-block align-middle"></span>
 		</a>
 
 		<div class="flex flex-row gap-2 w-full items-center">
-			<label for="api-token-input">API Token:</label>
+			<label for="api-token-input" class="text-app">API Token:</label>
 			<input
 				id="api-token-input"
 				type="text"
 				bind:value={inputValue}
 				disabled={isValidating}
 				placeholder="Enter your API token"
-				class="border border-gray-300 bg-white rounded-md p-2 grow-1"
+				class="input-base grow-1"
 			/>
 		</div>
 
@@ -147,11 +144,11 @@
 		>
 
 		{#if validationError}
-			<p class="text-red-500">{validationError}</p>
+			<p class="text-red-500 dark:text-red-400">{validationError}</p>
 		{/if}
 
 		{#if isValidating}
-			<p>Validating...</p>
+			<p class="text-app">Validating...</p>
 		{/if}
 	{/if}
 </div>

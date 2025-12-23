@@ -50,7 +50,7 @@
 				<button
 					onclick={() => deletePage(pageIndex)}
 					aria-label="Delete page"
-					class="cursor-pointer absolute top-0 right-0 m-2 bg-red-500 hover:bg-red-600 rounded-full"
+					class="btn-danger absolute top-0 right-0 m-2 rounded-full"
 				>
 					<div class="w-6 h-6 i-mdi-close text-white"></div>
 				</button>
@@ -58,7 +58,7 @@
 				<button
 					onclick={() => restorePage(pageIndex)}
 					aria-label="Restore page"
-					class="cursor-pointer absolute top-0 right-0 m-2 bg-green-500 hover:bg-green-600 rounded-full"
+					class="btn-success absolute top-0 right-0 m-2 rounded-full"
 				>
 					<div class="w-6 h-6 i-mdi-restore text-white"></div>
 				</button>

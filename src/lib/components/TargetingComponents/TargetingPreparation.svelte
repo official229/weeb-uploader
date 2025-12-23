@@ -275,26 +275,26 @@
 
 <div>
 	<div class="flex flex-col gap-2">
-		<h2 class="text-xl font-semibold">Targeting Preparation (Required)</h2>
+		<h2 class="text-xl font-semibold text-app">Targeting Preparation (Required)</h2>
 		<TargetingSeriesValidator />
 		<TargetingSeriesSearch />
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<h2 class="text-xl font-semibold">Group Preparation</h2>
+		<h2 class="text-xl font-semibold text-app">Group Preparation</h2>
 		<TargetingGroupValidator />
 		<TargetingGroupSearch />
 	</div>
 
 	<div class="flex flex-col gap-2">
 		<div class="flex flex-col gap-2">
-			<h2 class="text-lg font-semibold">Batch Edit</h2>
+			<h2 class="text-lg font-semibold text-app">Batch Edit</h2>
 			<TargetingBatchEdit bind:chapters={targetingState.chapterStates} />
 		</div>
 
 		<button
 			type="button"
-			class="cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-300 bg-blue-500 hover:bg-blue-600 text-white rounded-md px-2 py-1"
+			class="btn-primary disabled:opacity-50 disabled:cursor-not-allowed rounded-md px-2 py-1"
 			onclick={onDone}
 			disabled={!isAllready}
 		>
@@ -303,14 +303,14 @@
 
 		<div class="flex flex-col gap-2">
 			<div class="flex flex-row items-center gap-2">
-				<h2 class="text-lg font-semibold">Chapters</h2>
+				<h2 class="text-lg font-semibold text-app">Chapters</h2>
 				<label class="flex flex-row items-center gap-2 cursor-pointer">
 					<input type="checkbox" bind:checked={showOnlyUngrouped} class="cursor-pointer" />
-					<span class="text-sm text-gray-600">Show only chapters without groups</span>
+					<span class="text-sm text-muted">Show only chapters without groups</span>
 				</label>
 				<label class="flex flex-row items-center gap-2 cursor-pointer">
 					<input type="checkbox" bind:checked={showOnlyNonDeleted} class="cursor-pointer" />
-					<span class="text-sm text-gray-600">Show only non-deleted chapters</span>
+					<span class="text-sm text-muted">Show only non-deleted chapters</span>
 				</label>
 			</div>
 			<div class="flex flex-col gap-2 max-h-150 overflow-y-auto">

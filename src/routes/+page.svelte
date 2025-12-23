@@ -8,6 +8,7 @@
 	} from '$lib/components/TargetingComponents/TargetingState.svelte';
 	import UploaderOrchestrator from '$lib/components/UploaderComponents/UploaderOrchestrator.svelte';
 	import VerticalSlice from '$lib/components/VerticalSlicerComponents/VerticalSlice.svelte';
+	import ThemeToggle from '$lib/components/Common/ThemeToggle.svelte';
 	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
 	import { getContext, setContext } from 'svelte';
@@ -58,11 +59,12 @@
 </script>
 
 <div class="container mx-auto p-6 flex flex-col gap-6">
-	<h1 class="text-xl font-bold">Uploader Improved</h1>
+	<div class="flex flex-row justify-between items-center">
+		<h1 class="text-xl font-bold text-app">Uploader Improved</h1>
+		<ThemeToggle />
+	</div>
 
-	<a href={resolve('/docs')} target="_blank" class="text-blue-500 hover:text-blue-600">
-		Tutorial & Docs
-	</a>
+	<a href={resolve('/docs')} target="_blank" class="link-primary"> Tutorial & Docs </a>
 
 	{#if authSettingsVisible}
 		<TargetingAuthValidator />
@@ -72,9 +74,9 @@
 		<button
 			type="button"
 			class={{
-				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
-				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.PICKING_FOLDER,
-				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.PICKING_FOLDER
+				'btn-base': true,
+				'btn-neutral': editorState !== EDITOR_STATE.PICKING_FOLDER,
+				'btn-primary-active': editorState === EDITOR_STATE.PICKING_FOLDER
 			}}
 			disabled={disableSwitching}
 			onclick={() => switchEditorState(EDITOR_STATE.PICKING_FOLDER)}
@@ -82,53 +84,53 @@
 			Pick Folder
 		</button>
 
-		<div class="i-mdi-menu-right h-10"></div>
+		<div class="i-mdi-menu-right h-10 text-app"></div>
 
 		<button
 			type="button"
 			class={{
-				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
-				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.SELECTING_FOLDERS,
-				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.SELECTING_FOLDERS
+				'btn-base': true,
+				'btn-neutral': editorState !== EDITOR_STATE.SELECTING_FOLDERS,
+				'btn-primary-active': editorState === EDITOR_STATE.SELECTING_FOLDERS
 			}}
 			disabled={!selectedFiles || disableSwitching}
 			onclick={() => switchEditorState(EDITOR_STATE.SELECTING_FOLDERS)}>Select Folders</button
 		>
 
-		<div class="i-mdi-menu-right h-10"></div>
+		<div class="i-mdi-menu-right h-10 text-app"></div>
 
 		<button
 			type="button"
 			class={{
-				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
-				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.EDITING_CHAPTERS,
-				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.EDITING_CHAPTERS
+				'btn-base': true,
+				'btn-neutral': editorState !== EDITOR_STATE.EDITING_CHAPTERS,
+				'btn-primary-active': editorState === EDITOR_STATE.EDITING_CHAPTERS
 			}}
 			disabled={!finalizedFolderSelection || disableSwitching}
 			onclick={() => switchEditorState(EDITOR_STATE.EDITING_CHAPTERS)}>Edit Chapters</button
 		>
 
-		<div class="i-mdi-menu-right h-10"></div>
+		<div class="i-mdi-menu-right h-10 text-app"></div>
 
 		<button
 			type="button"
 			class={{
-				'cursor-pointer disabled:cursor-not-allowed p-2 rounded-md': true,
-				'bg-gray-300 hover:bg-gray-200': editorState !== EDITOR_STATE.UPLOADING,
-				'bg-blue-300 hover:bg-blue-200': editorState === EDITOR_STATE.UPLOADING
+				'btn-base': true,
+				'btn-neutral': editorState !== EDITOR_STATE.UPLOADING,
+				'btn-primary-active': editorState === EDITOR_STATE.UPLOADING
 			}}
 			disabled={!finalizedFolderSelection || disableSwitching}
 			onclick={() => switchEditorState(EDITOR_STATE.UPLOADING)}>Upload</button
 		>
 
-		<div class="i-mdi-menu-right h-10"></div>
+		<div class="i-mdi-menu-right h-10 text-app"></div>
 
 		<button
 			type="button"
 			class={{
-				'p-2 rounded-md': true,
-				'bg-gray-300': editorState !== EDITOR_STATE.FINISHED,
-				'bg-blue-300': editorState === EDITOR_STATE.FINISHED
+				'btn-base': true,
+				'btn-neutral': editorState !== EDITOR_STATE.FINISHED,
+				'btn-primary-active': editorState === EDITOR_STATE.FINISHED
 			}}
 			disabled={true}>Finished</button
 		>

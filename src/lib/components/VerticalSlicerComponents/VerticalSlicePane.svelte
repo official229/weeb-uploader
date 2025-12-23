@@ -119,13 +119,13 @@
 </script>
 
 <div class={['flex flex-col gap-2', className]}>
-	<h2 class="text-md font-bold">Vertical Slice Pane - {maximumLevels}</h2>
+	<h2 class="text-md font-bold text-app">Vertical Slice Pane - {maximumLevels}</h2>
 
 	<div class="grid grid-cols-2 gap-2">
-		<div class="flex flex-col gap-2 justify-between p-4 bg-gray-50 rounded-lg">
+		<div class="flex flex-col gap-2 justify-between p-4 bg-surface rounded-lg">
 			<div>
-				<h3 class="text-sm font-bold">Chapter Name Level</h3>
-				<p class="text-sm text-gray-500">
+				<h3 class="text-sm font-bold text-app">Chapter Name Level</h3>
+				<p class="text-sm text-muted">
 					This is the level at which folders will be grouped into chapters (the L numbering on the
 					directory explorer). The folders at this level will be used to group together chapters.
 				</p>
@@ -139,10 +139,10 @@
 			/>
 		</div>
 
-		<div class="flex flex-col gap-2 justify-between p-4 bg-gray-50 rounded-lg">
+		<div class="flex flex-col gap-2 justify-between p-4 bg-surface rounded-lg">
 			<div>
-				<h3 class="text-sm font-bold">File Level</h3>
-				<p class="text-sm text-gray-500">
+				<h3 class="text-sm font-bold text-app">File Level</h3>
+				<p class="text-sm text-muted">
 					This is the level at which files inside folders will be considered as being a part of the
 					chapter (the L numbering on the directory explorer). Only files contained within folders
 					at this level will be considered as being a part of the chapter.
@@ -158,10 +158,10 @@
 		</div>
 	</div>
 
-	<div class="flex flex-col gap-2 justify-between p-4 bg-gray-50 rounded-lg">
+	<div class="flex flex-col gap-2 justify-between p-4 bg-surface rounded-lg">
 		<div>
-			<h3 class="text-sm font-bold">File Path Filter</h3>
-			<p class="text-sm text-gray-500">
+			<h3 class="text-sm font-bold text-app">File Path Filter</h3>
+			<p class="text-sm text-muted">
 				This is a regex filter that will be applied in addition to the file level selector. This is
 				useful if you have multiple files at the same file level, but are only really interested in
 				a subset of them.
@@ -186,9 +186,9 @@
 				<input
 					type="checkbox"
 					bind:checked={isRegexCaseSensitive}
-					class="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+					class="w-5 h-5 text-green-600 dark:text-green-400 rounded focus:ring-green-500"
 				/>
-				<label for="isRegexCaseSensitive" class="text-sm text-gray-500">Case Sensitive</label>
+				<label for="isRegexCaseSensitive" class="text-sm text-muted">Case Sensitive</label>
 			</div>
 		</div>
 
@@ -196,7 +196,7 @@
 			type="text"
 			bind:value={filePathFilter}
 			placeholder="Filter files by path regex..."
-			class="bg-white w-full px-2 py-1 border border-gray-300 rounded-md"
+			class="input-base w-full"
 		/>
 	</div>
 </div>

@@ -10,8 +10,10 @@
 	}
 </script>
 
-<div class="container my-5 mx-auto flex flex-col gap-5">
-	<a href={resolve('/')} class="text-blue-500 hover:text-blue-600"> Back to Uploader Improved </a>
+<div class="container mx-auto flex flex-col gap-5">
+	<a href={resolve('/')} class="mt-5 text-blue-500 hover:text-blue-600">
+		Back to Uploader Improved
+	</a>
 
 	<div class="flex flex-col gap-2" id="api-token-where">
 		<a

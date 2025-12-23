@@ -94,11 +94,11 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<div class="flex flex-col gap-2 bg-gray-100 rounded-md p-4">
+	<div class="flex flex-col gap-2 bg-surface rounded-md p-4">
 		<div class="flex flex-row gap-2 items-center">
-			<label for="group-id-input" class="text-sm font-medium">Group ID:</label>
+			<label for="group-id-input" class="text-sm font-medium text-app">Group ID:</label>
 			<input
-				class="border border-gray-300 rounded-md p-2 grow-1 bg-white"
+				class="input-base grow-1"
 				id="group-id-input"
 				type="text"
 				bind:value={inputValue}
@@ -116,21 +116,21 @@
 		</button>
 
 		{#if validationError}
-			<p class="text-red-500">{validationError}</p>
+			<p class="text-red-500 dark:text-red-400">{validationError}</p>
 		{/if}
 		{#if isValidating}
-			<p>Validating...</p>
+			<p class="text-app">Validating...</p>
 		{/if}
 
 		{#if targetingState.availableScanGroups.length > 0}
 			<div class="grid grid-cols-2 gap-2">
 				{#each targetingState.availableScanGroups as group}
 					<div
-						class="flex flex-row justify-between gap-2 bg-gray-100 rounded-md p-4 border border-gray-300"
+						class="flex flex-row justify-between gap-2 bg-surface-hover rounded-md p-4 border border-surface"
 					>
 						<div class="flex flex-row gap-2 items-center">
-							<p class="text-sm text-gray-500">{group.groupId}</p>
-							<p class="text-sm font-bold">{group.groupName}</p>
+							<p class="text-sm text-muted">{group.groupId}</p>
+							<p class="text-sm font-bold text-app">{group.groupName}</p>
 						</div>
 						<button
 							type="button"
@@ -139,7 +139,7 @@
 							aria-label="Remove"
 							title="Remove"
 						>
-							<div class="i-mdi-delete h-5 w-5"></div>
+							<div class="i-mdi-delete h-5 w-5 text-app"></div>
 						</button>
 					</div>
 				{/each}
