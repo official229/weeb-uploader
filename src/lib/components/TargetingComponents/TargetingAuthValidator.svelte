@@ -122,8 +122,8 @@
 			href={`${resolve('/docs')}#api-token-where`}
 			class="text-sm text-gray-500 hover:text-blue-500"
 		>
-			If you're having trouble, click here for the relevant tutorial & docs section (this resets
-			your progress in the uploader).
+			If you're having trouble, click here for the relevant tutorial & docs section (opens in new
+			tab).
 			<span class="text-gray-500 w-4 h-4 i-mdi-arrow-top-right inline-block align-middle"></span>
 		</a>
 

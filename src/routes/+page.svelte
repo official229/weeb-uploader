@@ -60,7 +60,9 @@
 <div class="container mx-auto p-6 flex flex-col gap-6">
 	<h1 class="text-xl font-bold">Uploader Improved</h1>
 
-	<a href={resolve('/docs')} class="text-blue-500 hover:text-blue-600">Tutorial & Docs</a>
+	<a href={resolve('/docs')} target="_blank" class="text-blue-500 hover:text-blue-600">
+		Tutorial & Docs
+	</a>
 
 	{#if authSettingsVisible}
 		<TargetingAuthValidator />
