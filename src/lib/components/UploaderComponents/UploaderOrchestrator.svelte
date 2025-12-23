@@ -44,6 +44,20 @@
 			0
 		)
 	);
+	let chaptersWithWebp = $derived(
+		chapters
+			.filter((chapter) =>
+				chapter.pages.some((page) => {
+					const fileName = page.pageFile.name.toLowerCase();
+					return fileName.endsWith('.webp');
+				})
+			)
+			.map((chapter) => ({
+				title: chapter.chapterTitle || chapter.originalFolderPath || 'Untitled Chapter',
+				path: chapter.originalFolderPath || 'Unknown path'
+			}))
+	);
+	let hasWebpFiles = $derived(chaptersWithWebp.length > 0);
 
 	let chapterUploader = $state<ChapterUploader | null>(null);
 	let isUploading = $state(false);
@@ -97,6 +111,35 @@
 </script>
 
 <div class="flex flex-col gap-2">
+	{#if hasWebpFiles}
+		<div
+			class="flex flex-col gap-2 bg-yellow-500/20 dark:bg-yellow-500/10 border-1 border-yellow-500 rounded-md p-3"
+		>
+			<p class="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
+				⚠️ Warning: .webp files detected
+			</p>
+			<p class="text-xs text-yellow-700 dark:text-yellow-300">
+				Some chapters contain .webp files. Please verify these files are correctly formatted before
+				uploading.
+			</p>
+			<div class="flex flex-col gap-1 mt-1">
+				<p class="text-xs font-semibold text-yellow-700 dark:text-yellow-300">
+					Chapters with .webp files ({chaptersWithWebp.length}):
+				</p>
+				<div class="flex flex-col gap-1 max-h-48 overflow-y-auto">
+					{#each chaptersWithWebp as { title, path }}
+						<div
+							class="text-xs text-yellow-700 dark:text-yellow-300 border-l-2 border-yellow-500 pl-2"
+						>
+							<p class="font-medium">{title}</p>
+							<p class="text-xs opacity-75 font-mono">{path}</p>
+						</div>
+					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	<h1 class="text-2xl font-bold text-app">Upload Progress</h1>
 
 	<div class="flex flex-row gap-2">
