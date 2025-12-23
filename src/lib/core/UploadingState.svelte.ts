@@ -1,6 +1,5 @@
 import axios, { type AxiosProgressEvent } from 'axios';
 import { RATE_LIMITER_SESSION, RATE_LIMITER_UPLOAD } from './ApiWithRateLimit.svelte';
-import { cluster } from 'radashi';
 import { ChapterPageType, SelectedFolder } from './GroupedFolders';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
@@ -232,6 +231,60 @@ export class ChapterState {
 		this.progress = progressTotal / totalPages;
 	}
 
+	/**
+	 * Chunks pages into batches respecting both max page count and max total size limits.
+	 * @param pages - Array of pages to chunk
+	 * @param maxPagesPerBatch - Maximum number of pages per batch (default: 10)
+	 * @param maxSizePerBatchBytes - Maximum total size per batch in bytes (default: 100MB)
+	 * @returns Array of page batches
+	 */
+	private chunkPagesBySizeAndCount(
+		pages: ChapterPageState[],
+		maxPagesPerBatch: number = 10,
+		maxSizePerBatchBytes: number = 100 * 1024 * 1024 // 100MB
+	): ChapterPageState[][] {
+		const batches: ChapterPageState[][] = [];
+		let currentBatch: ChapterPageState[] = [];
+		let currentBatchSize = 0;
+
+		for (const page of pages) {
+			const pageSize = page.pageFile.size;
+
+			// Check if a single file exceeds the size limit
+			if (pageSize > maxSizePerBatchBytes) {
+				// Mark this page as failed since it exceeds the limit
+				page.status = ChapterPageStatus.FAILED;
+				page.error = `File size (${(pageSize / (1024 * 1024)).toFixed(2)}MB) exceeds maximum batch size limit (${(maxSizePerBatchBytes / (1024 * 1024)).toFixed(2)}MB)`;
+				page.progress = 0;
+				continue; // Skip this page
+			}
+
+			// Check if adding this page would exceed either limit
+			const wouldExceedPageLimit = currentBatch.length >= maxPagesPerBatch;
+			const wouldExceedSizeLimit = currentBatchSize + pageSize > maxSizePerBatchBytes;
+
+			if (wouldExceedPageLimit || wouldExceedSizeLimit) {
+				// Start a new batch if current batch has any pages
+				if (currentBatch.length > 0) {
+					batches.push(currentBatch);
+					currentBatch = [];
+					currentBatchSize = 0;
+				}
+			}
+
+			// Add page to current batch
+			currentBatch.push(page);
+			currentBatchSize += pageSize;
+		}
+
+		// Add the last batch if it has any pages
+		if (currentBatch.length > 0) {
+			batches.push(currentBatch);
+		}
+
+		return batches;
+	}
+
 	public async upload(token: string): Promise<void> {
 		this.status = ChapterStatus.IN_PROGRESS;
 		this.progress = 0;
@@ -283,10 +336,11 @@ export class ChapterState {
 			this.associatedUploadSessionId = uploadSessionId;
 			this.checkProgress(); // Update progress after session creation
 
-			// now we upload the pages in batches of up to 10 per request
+			// now we upload the pages in batches respecting both max 10 pages and max 100MB per request
 			// Process 3 chunks concurrently for better performance
-			const BATCH_SIZE = 10;
 			const CONCURRENT_CHUNKS = 3;
+			const MAX_PAGES_PER_BATCH = 10;
+			const MAX_SIZE_PER_BATCH_BYTES = 100 * 1024 * 1024; // 100MB
 
 			const nonDeletedPages = this.pages.filter((page) => !page.isDeleted);
 			const deletedPages = this.pages.filter((page) => page.isDeleted);
@@ -295,7 +349,22 @@ export class ChapterState {
 				page.status = ChapterPageStatus.SKIPPED;
 			}
 
-			const pageChunks = cluster(nonDeletedPages, BATCH_SIZE);
+			const pageChunks = this.chunkPagesBySizeAndCount(
+				nonDeletedPages,
+				MAX_PAGES_PER_BATCH,
+				MAX_SIZE_PER_BATCH_BYTES
+			);
+
+			// Check if any pages were marked as failed during chunking (e.g., exceeded size limits)
+			const failedDuringChunking = nonDeletedPages.filter(
+				(page) => page.status === ChapterPageStatus.FAILED
+			);
+			if (failedDuringChunking.length > 0) {
+				this.status = ChapterStatus.FAILED;
+				this.progress = 0;
+				await this.cleanupFailedUpload(token);
+				return;
+			}
 
 			// Process chunks in groups of 3 concurrently
 			for (let i = 0; i < pageChunks.length; i += CONCURRENT_CHUNKS) {
@@ -328,13 +397,15 @@ export class ChapterState {
 			}
 
 			// Gather upload IDs, preserving page order
+			// Only count non-deleted pages since deleted pages are skipped
+			const expectedUploadCount = nonDeletedPages.length;
 			const gatheredUploads: string[] = this.pages
 				.map((page) => page.associatedUploadSessionFileId)
 				.filter((id): id is string => id !== null);
 
-			if (gatheredUploads.length !== this.pages.length) {
+			if (gatheredUploads.length !== expectedUploadCount) {
 				this.status = ChapterStatus.FAILED;
-				this.error = `Failed to upload some pages: ${this.pages.length - gatheredUploads.length} page(s) missing upload IDs`;
+				this.error = `Failed to upload some pages: ${expectedUploadCount - gatheredUploads.length} page(s) missing upload IDs`;
 				this.progress = 0;
 				await this.cleanupFailedUpload(token);
 				return;
