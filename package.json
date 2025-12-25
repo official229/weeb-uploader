@@ -28,6 +28,7 @@
 		"@unocss/svelte-scoped": "^66.5.9",
 		"@zip.js/zip.js": "^2.8.11",
 		"axios": "^1.13.2",
+		"csv-parse": "^6.1.0",
 		"eslint": "^9.39.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.13.0",

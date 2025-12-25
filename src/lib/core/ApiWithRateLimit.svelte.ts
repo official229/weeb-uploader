@@ -71,6 +71,6 @@ export class ApiWithRateLimit {
 	}
 }
 
-export const RATE_LIMITER_GLOBAL = new ApiWithRateLimit(4, 1);
+export const RATE_LIMITER_GLOBAL = new ApiWithRateLimit(3, 1);
 export const RATE_LIMITER_SESSION = new ApiWithRateLimit(20, 60).addChainLimit(RATE_LIMITER_GLOBAL);
 export const RATE_LIMITER_UPLOAD = new ApiWithRateLimit(20, 60).addChainLimit(RATE_LIMITER_GLOBAL);

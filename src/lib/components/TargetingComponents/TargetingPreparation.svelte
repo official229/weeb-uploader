@@ -21,6 +21,7 @@
 	import { XMLParser } from 'fast-xml-parser';
 	import TargetingGroupSearch from './TargetingGroupSearch.svelte';
 	import TargetingSeriesSearch from './TargetingSeriesSearch.svelte';
+	import SeriesChapterDumpLookup from './SeriesChapterDumpLookup.svelte';
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
@@ -273,10 +274,11 @@
 	});
 </script>
 
-<div>
+<div class="flex flex-col gap-2">
 	<div class="flex flex-col gap-2">
 		<h2 class="text-xl font-semibold text-app">Targeting Preparation (Required)</h2>
 		<TargetingSeriesValidator />
+		<SeriesChapterDumpLookup />
 		<TargetingSeriesSearch />
 	</div>
 
