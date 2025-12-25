@@ -27,7 +27,7 @@
 		isSearching = true;
 		try {
 			const response = await searchGroups(searchQuery.trim());
-			searchResults = response.data;
+			searchResults = response.data ?? [];
 		} catch (error) {
 			console.error(error);
 		} finally {

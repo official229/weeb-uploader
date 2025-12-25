@@ -88,7 +88,7 @@ export interface GroupData {
 }
 
 export interface GroupsResponse {
-	data: GroupData[];
+	data?: GroupData[];
 	limit: number;
 	page: number;
 	total: number;

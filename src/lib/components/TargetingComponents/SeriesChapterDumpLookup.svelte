@@ -88,6 +88,12 @@
 						// Search for the group via API
 						const response = await searchGroups(groupName);
 
+						if (!response.data) {
+							failed.push(groupName);
+							console.warn(`No data found for group "${groupName}"`);
+							continue;
+						}
+
 						// Find exact match
 						const exactMatch = response.data.find((g) => g.name === groupName);
 
