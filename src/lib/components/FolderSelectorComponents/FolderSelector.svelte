@@ -34,25 +34,34 @@
 		'image/gif',
 		'image/webp',
 		'application/vnd.comicbook+zip', // .cbz is a zip file
+		'application/zip', // .zip files
 		'application/json',
 		'text/xml' // comicinfo.xml
 	];
 
-	const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'cbz', 'xml'];
+	const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'cbz', 'zip', 'xml'];
 
 	/**
-	 * Extracts a .cbz file and creates virtual File objects with fake paths
+	 * Extracts an archive file (.cbz or .zip) and creates virtual File objects with fake paths
 	 * to simulate a subfolder structure
 	 */
-	async function extractCbzFile(cbzFile: File): Promise<File[]> {
-		console.log('Extracting .cbz file:', cbzFile.name);
-		const zipReader = new zip.ZipReader(new zip.BlobReader(cbzFile));
+	async function extractArchiveFile(archiveFile: File): Promise<File[]> {
+		const archiveExtension = archiveFile.name.split('.').pop()?.toLowerCase();
+		const isCbz = archiveExtension === 'cbz';
+		const isZip = archiveExtension === 'zip';
+
+		if (!isCbz && !isZip) {
+			throw new Error(`Unsupported archive format: ${archiveExtension}`);
+		}
+
+		console.log(`Extracting ${archiveExtension} file:`, archiveFile.name);
+		const zipReader = new zip.ZipReader(new zip.BlobReader(archiveFile));
 		const entries = await zipReader.getEntries();
 		const extractedFiles: File[] = [];
 
-		// Get the base name of the .cbz file (without extension) for the virtual folder
-		const cbzBaseName = cbzFile.name.replace(/\.cbz$/i, '');
-		const originalPath = cbzFile.webkitRelativePath || cbzFile.name;
+		// Get the base name of the archive file (without extension) for the virtual folder
+		const archiveBaseName = archiveFile.name.replace(/\.(cbz|zip)$/i, '');
+		const originalPath = archiveFile.webkitRelativePath || archiveFile.name;
 
 		for (const entry of entries) {
 			// Skip directory entries (we only process files, not empty directories)
@@ -92,12 +101,12 @@
 			const fileName = entryPath.split('/').pop() ?? entryPath;
 
 			// Create a File object with a virtual path
-			// The path will be: {originalPath}/{cbzBaseName}/{entryPath}
+			// The path will be: {originalPath}/{archiveBaseName}/{entryPath}
 			// This preserves the directory structure inside the archive
 			// entryPath already includes any subdirectories (e.g., "chapter1/page1.png")
 			const virtualPath = originalPath.includes('/')
-				? `${originalPath.split('/').slice(0, -1).join('/')}/${cbzBaseName}/${entryPath}`
-				: `${cbzBaseName}/${entryPath}`;
+				? `${originalPath.split('/').slice(0, -1).join('/')}/${archiveBaseName}/${entryPath}`
+				: `${archiveBaseName}/${entryPath}`;
 
 			const virtualFile = new File([blob], fileName, {
 				type: blob.type
@@ -118,6 +127,15 @@
 		currentlyProcessingFile = null;
 
 		return extractedFiles;
+	}
+
+	/**
+	 * Extracts a .cbz file and creates virtual File objects with fake paths
+	 * to simulate a subfolder structure
+	 * @deprecated Use extractArchiveFile instead
+	 */
+	async function extractCbzFile(cbzFile: File): Promise<File[]> {
+		return extractArchiveFile(cbzFile);
 	}
 
 	/**
@@ -246,10 +264,10 @@
 		const input = event.target as HTMLInputElement;
 		const files = Array.from(input.files ?? []);
 
-		// Separate .cbz files from other files
-		const cbzFiles = files.filter((file) => {
+		// Separate archive files (.cbz and .zip) from other files
+		const archiveFiles = files.filter((file) => {
 			const extension = file.name.split('.').pop()?.toLowerCase();
-			return extension === 'cbz';
+			return extension === 'cbz' || extension === 'zip';
 		});
 
 		const otherFiles = files.filter((file) => {
@@ -257,23 +275,24 @@
 			const mimeType = file.type;
 			return (
 				extension !== 'cbz' &&
+				extension !== 'zip' &&
 				allowedExtensions.includes(extension ?? '') &&
 				allowedMimeTypes.includes(mimeType)
 			);
 		});
 
-		// Extract all .cbz files and get their contents
+		// Extract all archive files and get their contents
 		const extractedFiles: File[] = [];
-		for (const cbzFile of cbzFiles) {
+		for (const archiveFile of archiveFiles) {
 			try {
-				const filesFromCbz = await extractCbzFile(cbzFile);
-				extractedFiles.push(...filesFromCbz);
+				const filesFromArchive = await extractArchiveFile(archiveFile);
+				extractedFiles.push(...filesFromArchive);
 			} catch (error) {
-				console.error(`Error extracting ${cbzFile.name}:`, error);
+				console.error(`Error extracting ${archiveFile.name}:`, error);
 			}
 		}
 
-		// Combine other files with extracted files, filtering out the original .cbz files
+		// Combine other files with extracted files, filtering out the original archive files
 		selectedFiles = [...otherFiles, ...extractedFiles];
 
 		console.log('Selected files:', selectedFiles);
