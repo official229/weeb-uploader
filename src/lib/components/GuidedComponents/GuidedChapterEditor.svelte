@@ -6,6 +6,7 @@
 		targetingStateContext
 	} from '../TargetingComponents/TargetingState.svelte';
 	import TargetingEditableField from '../TargetingComponents/TargetingEditableField.svelte';
+	import TargetingEditableGroup from '../TargetingComponents/TargetingEditableGroup.svelte';
 	import { CHAPTER_TITLE_EXPORT_RESOLVER } from '$lib/core/ChapterTitleExportResolver.svelte';
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
@@ -247,7 +248,7 @@
 						e.stopPropagation();
 						startEditingVolumeChapter();
 					}}
-					class="clickable-hint rounded-md p-1 text-xs"
+					class="bg-surface hover:bg-surface-hover cursor-pointer rounded-md p-1 text-xs"
 					title="Edit volume and chapter"
 					aria-label="Edit volume and chapter"
 				>
@@ -298,20 +299,7 @@
 	</div>
 	<div class="flex flex-row gap-2 items-center">
 		<span class="text-xs text-muted">Groups:</span>
-		{#if chapter.associatedGroup.groupIds && chapter.associatedGroup.groupIds.length > 0}
-			<div class="flex flex-row gap-1 flex-wrap">
-				{#each chapter.associatedGroup.groupIds as groupId}
-					{@const group = targetingState.availableScanGroups.find((g) => g.groupId === groupId)}
-					<span
-						class="text-xs bg-blue-500/20 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded"
-					>
-						{group?.groupName ?? groupId}
-					</span>
-				{/each}
-			</div>
-		{:else}
-			<span class="text-xs text-muted italic">No groups assigned</span>
-		{/if}
+		<TargetingEditableGroup bind:groups={chapter.associatedGroup} fieldName="groups" {chapter} />
 	</div>
 	<div class="flex flex-row gap-2 items-center">
 		<span class="text-xs text-muted">Path:</span>
