@@ -190,6 +190,62 @@ export class ChapterTitleExportResolver {
 
 		return Array.from(groupNamesSet);
 	}
+
+	async getUniqueVolumeChapterCombinations(
+		seriesId: string
+	): Promise<Array<{ volume: string; chapter: string; title: string | null }>> {
+		await this.ensureLoaded();
+
+		if (this.data === null) {
+			return [];
+		}
+
+		const seriesMap = this.data.get(seriesId);
+		if (!seriesMap) {
+			return [];
+		}
+
+		// Use a map to track unique combinations and their titles
+		const combinationsMap = new SvelteMap<
+			string,
+			{ volume: string; chapter: string; title: string | null }
+		>();
+
+		for (const [key, chapterInfos] of seriesMap.entries()) {
+			if (chapterInfos.length === 0) continue;
+
+			const [volume, chapter] = key.split('|');
+			// Get title from first entry (all should have same title for same volume/chapter)
+			const title = chapterInfos[0].title || null;
+
+			// Use the key as the unique identifier
+			if (!combinationsMap.has(key)) {
+				combinationsMap.set(key, { volume, chapter, title });
+			}
+		}
+
+		// Convert to array and sort by volume then chapter (treating as numbers when possible)
+		const combinations = Array.from(combinationsMap.values());
+
+		// Sort: first by volume (numeric if possible), then by chapter (numeric if possible)
+		combinations.sort((a, b) => {
+			// Try to parse as numbers for proper numeric sorting
+			const volA = a.volume === '' ? -1 : Number.parseFloat(a.volume) || Number.POSITIVE_INFINITY;
+			const volB = b.volume === '' ? -1 : Number.parseFloat(b.volume) || Number.POSITIVE_INFINITY;
+
+			if (volA !== volB) {
+				return volA - volB;
+			}
+
+			// If volumes are equal, sort by chapter
+			const chA = a.chapter === '' ? -1 : Number.parseFloat(a.chapter) || Number.POSITIVE_INFINITY;
+			const chB = b.chapter === '' ? -1 : Number.parseFloat(b.chapter) || Number.POSITIVE_INFINITY;
+
+			return chA - chB;
+		});
+
+		return combinations;
+	}
 }
 
 export const CHAPTER_TITLE_EXPORT_RESOLVER = new ChapterTitleExportResolver();
