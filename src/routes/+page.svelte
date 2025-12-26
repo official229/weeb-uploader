@@ -13,6 +13,7 @@
 	import type { SelectedFolder } from '$lib/core/GroupedFolders';
 	import { getContext, setContext } from 'svelte';
 	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
 
 	let selectedFiles = $state<File[] | null>(null);
 	let finalizedFolderSelection = $state<SelectedFolder[] | null>(null);
@@ -61,7 +62,16 @@
 <div class="container mx-auto p-6 flex flex-col gap-6">
 	<div class="flex flex-row justify-between items-center">
 		<h1 class="text-xl font-bold text-app">Uploader Improved</h1>
-		<ThemeToggle />
+		<div class="flex flex-row gap-2 items-center">
+			<button
+				type="button"
+				class="btn-base btn-primary px-4 py-2"
+				onclick={() => goto(resolve('/guided'))}
+			>
+				Guided Mode
+			</button>
+			<ThemeToggle />
+		</div>
 	</div>
 
 	<a href={resolve('/docs')} target="_blank" class="link-primary"> Tutorial & Docs </a>

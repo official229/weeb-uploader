@@ -135,3 +135,54 @@ export async function searchManga(query: string) {
 		return response.data as MangaResponse;
 	});
 }
+
+export interface AggregateChapterEntry {
+	published_at: string;
+	language: number;
+	groups: number[]; // These are indices into the groups array
+}
+
+export interface AggregateGroup {
+	id: string;
+	name: string;
+}
+
+export interface AggregateChapter {
+	volume: string | null;
+	chapter: string;
+	entries: Record<string, AggregateChapterEntry>;
+}
+
+export interface MangaAggregateResponse {
+	chapters: AggregateChapter[];
+	groups: AggregateGroup[];
+	languages: string[];
+}
+
+export async function getMangaAggregate(mangaId: string): Promise<MangaAggregateResponse> {
+	return await RATE_LIMITER_GLOBAL.makeRequest(async () => {
+		const response = await axios.get(`https://api.weebdex.org/manga/${mangaId}/aggregate`);
+
+		if (response.status !== 200) {
+			throw new Error(`Failed to get manga aggregate: ${response.status} ${response.statusText}`);
+		}
+
+		return response.data as MangaAggregateResponse;
+	});
+}
+
+export async function getGroupById(groupId: string): Promise<GroupData | null> {
+	return await RATE_LIMITER_GLOBAL.makeRequest(async () => {
+		try {
+			const response = await axios.get(`https://api.weebdex.org/group/${groupId}`);
+
+			if (response.status !== 200) {
+				return null;
+			}
+
+			return response.data as GroupData;
+		} catch (error) {
+			return null;
+		}
+	});
+}
