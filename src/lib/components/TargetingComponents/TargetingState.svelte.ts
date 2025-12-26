@@ -167,7 +167,15 @@ export async function getMangaAggregate(mangaId: string): Promise<MangaAggregate
 			throw new Error(`Failed to get manga aggregate: ${response.status} ${response.statusText}`);
 		}
 
-		return response.data as MangaAggregateResponse;
+		const responseRaw = response.data;
+
+		const responseWrapped: MangaAggregateResponse = {
+			chapters: responseRaw.chapters ?? [],
+			groups: responseRaw.groups ?? [],
+			languages: responseRaw.languages ?? []
+		};
+
+		return responseWrapped;
 	});
 }
 

@@ -81,11 +81,12 @@ export function groupMangaFolders(files: File[]): Map<string, File[]> {
 /**
  * Extracts MD-#### pattern (MangaDex ID) from .zip file name.
  * Pattern matches "MD-" followed by digits (e.g., "MD-12345").
+ * Returns only the numeric part (e.g., "12345"), not the "MD-" prefix.
  */
 export function extractMangaDexIdFromZipName(zipFileName: string): string | null {
 	const pattern = /MD-(\d+)/i;
 	const match = zipFileName.match(pattern);
-	return match ? match[0] : null; // Return full match including "MD-" prefix
+	return match ? match[1] : null; // Return only the numeric part
 }
 
 /**

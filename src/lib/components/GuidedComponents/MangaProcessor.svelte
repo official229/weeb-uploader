@@ -19,7 +19,12 @@
 		targetingStateContext
 	} from '../TargetingComponents/TargetingState.svelte';
 	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
-	import { extractDeepestFolders, applyVolumeRegex, applyChapterRegex } from './guidedUtils';
+	import {
+		extractDeepestFolders,
+		applyVolumeRegex,
+		applyChapterRegex,
+		extractMangaDexIdFromZipName
+	} from './guidedUtils';
 	import TargetingSeriesSearch from '../TargetingComponents/TargetingSeriesSearch.svelte';
 	import TargetingSeriesValidator from '../TargetingComponents/TargetingSeriesValidator.svelte';
 	import SeriesChapterDumpLookup from '../TargetingComponents/SeriesChapterDumpLookup.svelte';
@@ -35,6 +40,7 @@
 	} from '../TargetingComponents/TargetingState.svelte';
 	import { ScanGroup } from '$lib/core/UploadingState.svelte';
 	import GuidedChapterEditor from './GuidedChapterEditor.svelte';
+	import { LEGACY_ID_RESOLVER } from '$lib/core/LegacyIdResolver.svelte';
 
 	// Configure zip.js to disable web workers
 	zip.configure({
@@ -172,6 +178,23 @@
 	async function processZipFile() {
 		processingStep = 'loading';
 		targetingState.reset();
+
+		// Try to automatically detect series ID from MD-#### in zip file name
+		const mangaDexId = extractMangaDexIdFromZipName(zipFile.name);
+		if (mangaDexId) {
+			try {
+				await LEGACY_ID_RESOLVER.load();
+				const weebdexId = await LEGACY_ID_RESOLVER.getWeebdexIdFromLegacyId(mangaDexId);
+				if (weebdexId) {
+					targetingState.seriesId = weebdexId;
+					console.log(`Auto-detected series ID from MD-####: ${mangaDexId} -> ${weebdexId}`);
+				} else {
+					console.log(`No WeebDex ID found for MangaDex ID: ${mangaDexId}`);
+				}
+			} catch (error) {
+				console.warn(`Failed to lookup WeebDex ID for MangaDex ID ${mangaDexId}:`, error);
+			}
+		}
 
 		// Extract the zip file
 		processingStep = 'extracting';
@@ -446,9 +469,6 @@
 						}
 					}
 
-					// Get our chapter's group IDs
-					const chapterGroupIds = chapter.associatedGroup.groupIds ?? [];
-
 					// Look up actual group IDs and names from the groups array using indices
 					const existingGroupNames: string[] = [];
 					for (const groupIndex of existingGroupIndices) {
@@ -460,12 +480,6 @@
 							existingGroupNames.push(`Unknown Group (index: ${groupIndex})`);
 						}
 					}
-
-					// Check if any of our chapter's groups match the existing groups
-					const hasMatchingGroup = chapterGroupIds.some((chapterGroupId) => {
-						// Check if this group ID matches any of the existing groups
-						return aggregate.groups?.some((group) => group.id === chapterGroupId) ?? false;
-					});
 
 					// If chapter exists, show it as a duplicate
 					duplicates.push({
