@@ -9,7 +9,8 @@
 		LOADING = 'LOADING',
 		LOADED = 'LOADED',
 		ERROR = 'ERROR',
-		APPLYING = 'APPLYING'
+		APPLYING = 'APPLYING',
+		ASSIGNING_TITLES = 'ASSIGNING_TITLES'
 	}
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
@@ -27,6 +28,16 @@
 	let lastProcessedSeriesId = $state<string | null>(null);
 	let loadPromise: Promise<void> | null = null;
 	let appliedGroupsCount = $state<number>(0);
+	let assignedTitlesCount = $state<number>(0);
+
+	interface FailedTitleMatch {
+		volume: string | null;
+		chapter: string | null;
+		folderPath: string | null;
+		reason: 'no_groups' | 'no_chapter_info' | 'no_matching_group' | 'no_title';
+	}
+
+	let failedTitleMatches = $state<FailedTitleMatch[]>([]);
 
 	$effect(() => {
 		(async () => {
@@ -48,6 +59,8 @@
 				lastProcessedSeriesId = null;
 				loadPromise = null;
 				appliedGroupsCount = 0;
+				assignedTitlesCount = 0;
+				failedTitleMatches = [];
 			}
 		})();
 	});
@@ -73,6 +86,8 @@
 		addedGroupsCount = 0;
 		failedGroups = [];
 		appliedGroupsCount = 0;
+		assignedTitlesCount = 0;
+		failedTitleMatches = [];
 
 		loadPromise = (async () => {
 			try {
@@ -196,6 +211,106 @@
 			console.error('Error applying groups to chapters:', err);
 		}
 	}
+
+	async function applyTitlesToChapters() {
+		if (lookupState !== LookupState.LOADED || !targetingState.seriesId) {
+			return;
+		}
+
+		lookupState = LookupState.ASSIGNING_TITLES;
+		let assignedCount = 0;
+		const failed: FailedTitleMatch[] = [];
+
+		try {
+			// Create a map of group ID to group name for quick lookup
+			const groupIdToNameMap = new Map<string, string>();
+			for (const group of targetingState.availableScanGroups) {
+				groupIdToNameMap.set(group.groupId, group.groupName);
+			}
+
+			// Iterate through all chapters
+			for (const chapter of targetingState.chapterStates) {
+				// Get the chapter's assigned group IDs
+				const assignedGroupIds = chapter.associatedGroup.groupIds ?? [];
+				if (assignedGroupIds.length === 0) {
+					failed.push({
+						volume: chapter.chapterVolume,
+						chapter: chapter.chapterNumber,
+						folderPath: chapter.originalFolderPath,
+						reason: 'no_groups'
+					});
+					continue;
+				}
+
+				// Map group IDs to group names
+				const assignedGroupNames = assignedGroupIds
+					.map((id) => groupIdToNameMap.get(id))
+					.filter((name): name is string => name !== undefined);
+
+				if (assignedGroupNames.length === 0) {
+					failed.push({
+						volume: chapter.chapterVolume,
+						chapter: chapter.chapterNumber,
+						folderPath: chapter.originalFolderPath,
+						reason: 'no_groups'
+					});
+					continue;
+				}
+
+				// Get chapter info from the CSV data - volume and chapter must match exactly
+				const chapterInfo = await CHAPTER_TITLE_EXPORT_RESOLVER.getChapterInfo(
+					targetingState.seriesId,
+					chapter.chapterVolume,
+					chapter.chapterNumber
+				);
+
+				if (!chapterInfo) {
+					failed.push({
+						volume: chapter.chapterVolume,
+						chapter: chapter.chapterNumber,
+						folderPath: chapter.originalFolderPath,
+						reason: 'no_chapter_info'
+					});
+					continue;
+				}
+
+				if (!chapterInfo.title) {
+					failed.push({
+						volume: chapter.chapterVolume,
+						chapter: chapter.chapterNumber,
+						folderPath: chapter.originalFolderPath,
+						reason: 'no_title'
+					});
+					continue;
+				}
+
+				// Check if any of the chapter's assigned group names match the CSV group names
+				const hasMatchingGroup = assignedGroupNames.some((name) =>
+					chapterInfo.groupNames.includes(name)
+				);
+
+				if (hasMatchingGroup) {
+					chapter.chapterTitle = chapterInfo.title;
+					assignedCount++;
+				} else {
+					failed.push({
+						volume: chapter.chapterVolume,
+						chapter: chapter.chapterNumber,
+						folderPath: chapter.originalFolderPath,
+						reason: 'no_matching_group'
+					});
+				}
+			}
+
+			assignedTitlesCount = assignedCount;
+			failedTitleMatches = failed;
+			lookupState = LookupState.LOADED;
+		} catch (err) {
+			lookupState = LookupState.ERROR;
+			error = err instanceof Error ? err.message : 'Failed to assign titles to chapters';
+			console.error('Error assigning titles to chapters:', err);
+		}
+	}
 </script>
 
 <div class="flex flex-col gap-2 bg-surface rounded-md p-4">
@@ -209,7 +324,7 @@
 		<p class="text-red-500 dark:text-red-400">{error}</p>
 	{:else if lookupState === LookupState.IDLE}
 		<p class="text-muted">No dumped chapter lookups available.</p>
-	{:else if lookupState === LookupState.LOADED || lookupState === LookupState.APPLYING}
+	{:else if lookupState === LookupState.LOADED || lookupState === LookupState.APPLYING || lookupState === LookupState.ASSIGNING_TITLES}
 		<div class="flex flex-col gap-1">
 			<p class="text-sm text-app">
 				Found {groupCount}
@@ -235,21 +350,72 @@
 				</div>
 			{/if}
 			{#if lookupState === LookupState.LOADED}
-				<button
-					type="button"
-					onclick={applyGroupsToChapters}
-					class="clickable-hint mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 dark:bg-blue-400 dark:hover:bg-blue-500 text-white rounded-md text-sm font-medium transition-colors"
-				>
-					Apply Groups to Chapters
-				</button>
+				<div class="flex flex-row gap-2 mt-2">
+					<button
+						type="button"
+						onclick={applyGroupsToChapters}
+						class="clickable-hint px-4 py-2 bg-blue-500 hover:bg-blue-600 dark:bg-blue-400 dark:hover:bg-blue-500 text-white rounded-md text-sm font-medium transition-colors"
+					>
+						Apply Groups to Chapters
+					</button>
+					<button
+						type="button"
+						onclick={applyTitlesToChapters}
+						class="clickable-hint px-4 py-2 bg-green-500 hover:bg-green-600 dark:bg-green-400 dark:hover:bg-green-500 text-white rounded-md text-sm font-medium transition-colors"
+					>
+						Assign Titles to Chapters
+					</button>
+				</div>
 			{:else if lookupState === LookupState.APPLYING}
 				<p class="text-app mt-2">Applying groups to chapters...</p>
+			{:else if lookupState === LookupState.ASSIGNING_TITLES}
+				<p class="text-app mt-2">Assigning titles to chapters...</p>
 			{/if}
 			{#if appliedGroupsCount > 0}
 				<p class="text-sm text-green-500 dark:text-green-400 mt-2">
 					Applied {appliedGroupsCount}
 					{appliedGroupsCount === 1 ? 'group' : 'groups'} to chapters.
 				</p>
+			{/if}
+			{#if assignedTitlesCount > 0}
+				<p class="text-sm text-green-500 dark:text-green-400 mt-2">
+					Assigned {assignedTitlesCount}
+					{assignedTitlesCount === 1 ? 'title' : 'titles'} to chapters.
+				</p>
+			{/if}
+			{#if failedTitleMatches.length > 0}
+				<div class="flex flex-col gap-1 mt-2">
+					<p class="text-sm text-yellow-500 dark:text-yellow-400 font-semibold">
+						Warning: Unable to assign titles to {failedTitleMatches.length}{' '}
+						{failedTitleMatches.length === 1 ? 'chapter' : 'chapters'} (volume and chapter must match
+						exactly):
+					</p>
+					<ul
+						class="text-sm text-yellow-500 dark:text-yellow-400 list-disc list-inside ml-2 space-y-1"
+					>
+						{#each failedTitleMatches as failedMatch}
+							<li>
+								<span class="font-medium">
+									Vol {failedMatch.volume ?? 'N/A'}, Ch {failedMatch.chapter ?? 'N/A'}
+								</span>
+								{#if failedMatch.folderPath}
+									<span class="text-muted"> - {failedMatch.folderPath}</span>
+								{/if}
+								<span class="text-xs">
+									({#if failedMatch.reason === 'no_groups'}
+										No groups assigned
+									{:else if failedMatch.reason === 'no_chapter_info'}
+										No matching volume/chapter in export
+									{:else if failedMatch.reason === 'no_title'}
+										No title in export
+									{:else if failedMatch.reason === 'no_matching_group'}
+										No matching group in export
+									{/if})
+								</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
 			{/if}
 		</div>
 	{/if}
