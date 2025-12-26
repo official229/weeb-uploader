@@ -83,6 +83,28 @@
 		console.log('Series ID:', targetingState.seriesId);
 		console.log('Chapters:', targetingState.chapterStates);
 
+		// Reset only errored chapter statuses before starting upload
+		// Only reset chapters that are in FAILED state, not completed ones
+		for (const chapter of targetingState.chapterStates) {
+			if (chapter.status === ChapterStatus.FAILED) {
+				chapter.status = ChapterStatus.NOT_STARTED;
+				chapter.progress = 0;
+				chapter.error = null;
+				chapter.associatedUploadSessionId = null;
+
+				// Reset all pages for failed chapters
+				for (const page of chapter.pages) {
+					// Only reset pages that are in error state
+					if (page.status === ChapterPageStatus.FAILED) {
+						page.status = ChapterPageStatus.NOT_STARTED;
+						page.progress = 0;
+						page.error = null;
+						page.associatedUploadSessionFileId = null;
+					}
+				}
+			}
+		}
+
 		// Create a new uploader instance with current chapters
 		chapterUploader = new ChapterUploader(chapters, authContext.apiToken);
 
