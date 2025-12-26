@@ -34,6 +34,7 @@
 		type AggregateChapter
 	} from '../TargetingComponents/TargetingState.svelte';
 	import { ScanGroup } from '$lib/core/UploadingState.svelte';
+	import GuidedChapterEditor from './GuidedChapterEditor.svelte';
 
 	// Configure zip.js to disable web workers
 	zip.configure({
@@ -394,7 +395,7 @@
 				chapter.chapterNumber
 			);
 
-			if (!chapterInfo || !chapterInfo.title) continue;
+			if (!chapterInfo) continue;
 
 			const hasMatchingGroup = assignedGroupNames.some((name) =>
 				chapterInfo.groupNames.includes(name)
@@ -650,65 +651,7 @@
 				<h3 class="text-lg font-semibold text-app">Detected Chapters</h3>
 				<div class="flex flex-col gap-2 max-h-150 overflow-y-auto">
 					{#each chapters as chapter, index}
-						<div
-							class="bg-surface-hover rounded-md p-3 flex flex-col gap-2 {chapter.isDeleted
-								? 'opacity-50 border-2 border-red-500/50'
-								: ''}"
-						>
-							<div class="flex flex-row gap-4 items-center">
-								<span class="text-sm font-bold text-app">#{index + 1}</span>
-								{#if chapter.isDeleted}
-									<span
-										class="px-2 py-1 rounded text-xs font-semibold bg-red-500/20 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500"
-									>
-										Removed
-									</span>
-								{/if}
-								<div class="flex flex-row gap-2 items-center">
-									<span class="text-xs text-muted">Vol:</span>
-									<span class="text-sm text-app">{chapter.chapterVolume ?? 'N/A'}</span>
-								</div>
-								<div class="flex flex-row gap-2 items-center">
-									<span class="text-xs text-muted">Ch:</span>
-									<span class="text-sm text-app">{chapter.chapterNumber ?? 'N/A'}</span>
-								</div>
-								<div class="flex flex-row gap-2 items-center">
-									<span class="text-xs text-muted">Pages:</span>
-									<span class="text-sm text-app">{chapter.pages.length}</span>
-								</div>
-							</div>
-							<div class="flex flex-row gap-2 items-center">
-								<span class="text-xs text-muted">Title:</span>
-								<span class="text-sm text-app font-medium">
-									{chapter.chapterTitle || chapter.originalFolderPath || 'Untitled'}
-								</span>
-							</div>
-							<div class="flex flex-row gap-2 items-center">
-								<span class="text-xs text-muted">Groups:</span>
-								{#if chapter.associatedGroup.groupIds && chapter.associatedGroup.groupIds.length > 0}
-									<div class="flex flex-row gap-1 flex-wrap">
-										{#each chapter.associatedGroup.groupIds as groupId}
-											{@const group = targetingState.availableScanGroups.find(
-												(g) => g.groupId === groupId
-											)}
-											<span
-												class="text-xs bg-blue-500/20 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded"
-											>
-												{group?.groupName ?? groupId}
-											</span>
-										{/each}
-									</div>
-								{:else}
-									<span class="text-xs text-muted italic">No groups assigned</span>
-								{/if}
-							</div>
-							<div class="flex flex-row gap-2 items-center">
-								<span class="text-xs text-muted">Path:</span>
-								<span class="text-xs text-muted font-mono truncate"
-									>{chapter.originalFolderPath}</span
-								>
-							</div>
-						</div>
+						<GuidedChapterEditor {index} {chapter} />
 					{/each}
 				</div>
 			</div>
