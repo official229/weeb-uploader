@@ -4,6 +4,14 @@
 	import { ScanGroup } from '$lib/core/UploadingState.svelte';
 	import { CHAPTER_TITLE_EXPORT_RESOLVER } from '$lib/core/ChapterTitleExportResolver.svelte';
 
+	enum LookupState {
+		IDLE = 'IDLE',
+		LOADING = 'LOADING',
+		LOADED = 'LOADED',
+		ERROR = 'ERROR',
+		APPLYING = 'APPLYING'
+	}
+
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
 		throw new Error(
@@ -11,36 +19,42 @@
 		);
 	}
 
-	let isLoading = $state<boolean>(false);
-	let hasData = $state<boolean>(false);
+	let lookupState = $state<LookupState>(LookupState.IDLE);
 	let groupCount = $state<number>(0);
 	let error = $state<string | null>(null);
 	let addedGroupsCount = $state<number>(0);
 	let failedGroups = $state<string[]>([]);
 	let lastProcessedSeriesId = $state<string | null>(null);
 	let loadPromise: Promise<void> | null = null;
+	let appliedGroupsCount = $state<number>(0);
 
 	$effect(() => {
-		if (targetingState.seriesId) {
-			// Only load if this is a different series or we haven't processed this one yet
-			if (targetingState.seriesId !== lastProcessedSeriesId && !isLoading) {
-				loadChapterData(targetingState.seriesId);
+		(async () => {
+			if (targetingState.seriesId) {
+				// Only load if this is a different series or we haven't processed this one yet
+				if (
+					targetingState.seriesId !== lastProcessedSeriesId &&
+					lookupState !== LookupState.LOADING
+				) {
+					await loadChapterData(targetingState.seriesId);
+				}
+			} else {
+				// Reset state when series is cleared
+				lookupState = LookupState.IDLE;
+				groupCount = 0;
+				error = null;
+				addedGroupsCount = 0;
+				failedGroups = [];
+				lastProcessedSeriesId = null;
+				loadPromise = null;
+				appliedGroupsCount = 0;
 			}
-		} else {
-			// Reset state when series is cleared
-			hasData = false;
-			groupCount = 0;
-			error = null;
-			addedGroupsCount = 0;
-			failedGroups = [];
-			lastProcessedSeriesId = null;
-			loadPromise = null;
-		}
+		})();
 	});
 
 	async function loadChapterData(seriesId: string) {
 		// Prevent concurrent executions for the same series
-		if (isLoading && lastProcessedSeriesId === seriesId) {
+		if (lookupState === LookupState.LOADING && lastProcessedSeriesId === seriesId) {
 			return;
 		}
 
@@ -53,12 +67,12 @@
 			}
 		}
 
-		isLoading = true;
+		lookupState = LookupState.LOADING;
 		error = null;
-		hasData = false;
 		groupCount = 0;
 		addedGroupsCount = 0;
 		failedGroups = [];
+		appliedGroupsCount = 0;
 
 		loadPromise = (async () => {
 			try {
@@ -69,12 +83,12 @@
 				const groupNames = await CHAPTER_TITLE_EXPORT_RESOLVER.getAllGroupNames(seriesId);
 
 				if (groupNames.length === 0) {
-					hasData = false;
+					lookupState = LookupState.IDLE;
 					lastProcessedSeriesId = seriesId;
 					return;
 				}
 
-				hasData = true;
+				lookupState = LookupState.LOADED;
 				groupCount = groupNames.length;
 
 				// Clear existing available groups since we have dump data
@@ -123,15 +137,64 @@
 				addedGroupsCount = addedCount;
 				lastProcessedSeriesId = seriesId;
 			} catch (err) {
+				lookupState = LookupState.ERROR;
 				error = err instanceof Error ? err.message : 'Failed to load chapter data';
 				console.error('Error loading chapter data:', err);
 			} finally {
-				isLoading = false;
 				loadPromise = null;
 			}
 		})();
 
 		await loadPromise;
+	}
+
+	async function applyGroupsToChapters() {
+		console.log('availableScanGroups:', targetingState.availableScanGroups);
+		if (lookupState !== LookupState.LOADED) {
+			return;
+		}
+
+		lookupState = LookupState.APPLYING;
+		let appliedCount = 0;
+
+		try {
+			// Iterate through all chapters
+			for (const chapter of targetingState.chapterStates) {
+				if (!chapter.originalFolderPath) {
+					continue;
+				}
+
+				// Find groups that match the chapter's originalFolderPath
+				const matchingGroups = targetingState.availableScanGroups.filter((group) => {
+					// Check if the group name appears as a substring in the originalFolderPath
+					return chapter.originalFolderPath?.includes(group.groupName) ?? false;
+				});
+
+				if (matchingGroups.length > 0) {
+					// Get existing group IDs or create empty array
+					const existingGroupIds = chapter.associatedGroup.groupIds ?? [];
+					const existingSet = new Set(existingGroupIds);
+
+					// Add new group IDs that aren't already present
+					for (const group of matchingGroups) {
+						if (!existingSet.has(group.groupId)) {
+							existingSet.add(group.groupId);
+							appliedCount++;
+						}
+					}
+
+					// Update the chapter's group IDs
+					chapter.associatedGroup.groupIds = Array.from(existingSet);
+				}
+			}
+
+			appliedGroupsCount = appliedCount;
+			lookupState = LookupState.LOADED;
+		} catch (err) {
+			lookupState = LookupState.ERROR;
+			error = err instanceof Error ? err.message : 'Failed to apply groups to chapters';
+			console.error('Error applying groups to chapters:', err);
+		}
 	}
 </script>
 
@@ -140,13 +203,13 @@
 		<h3 class="text-sm font-medium text-app">Chapter Dump Lookup</h3>
 	</div>
 
-	{#if isLoading}
+	{#if lookupState === LookupState.LOADING}
 		<p class="text-app">Loading chapter data...</p>
-	{:else if error}
+	{:else if lookupState === LookupState.ERROR}
 		<p class="text-red-500 dark:text-red-400">{error}</p>
-	{:else if !hasData}
+	{:else if lookupState === LookupState.IDLE}
 		<p class="text-muted">No dumped chapter lookups available.</p>
-	{:else if hasData}
+	{:else if lookupState === LookupState.LOADED || lookupState === LookupState.APPLYING}
 		<div class="flex flex-col gap-1">
 			<p class="text-sm text-app">
 				Found {groupCount}
@@ -170,6 +233,23 @@
 						{/each}
 					</ul>
 				</div>
+			{/if}
+			{#if lookupState === LookupState.LOADED}
+				<button
+					type="button"
+					onclick={applyGroupsToChapters}
+					class="clickable-hint mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 dark:bg-blue-400 dark:hover:bg-blue-500 text-white rounded-md text-sm font-medium transition-colors"
+				>
+					Apply Groups to Chapters
+				</button>
+			{:else if lookupState === LookupState.APPLYING}
+				<p class="text-app mt-2">Applying groups to chapters...</p>
+			{/if}
+			{#if appliedGroupsCount > 0}
+				<p class="text-sm text-green-500 dark:text-green-400 mt-2">
+					Applied {appliedGroupsCount}
+					{appliedGroupsCount === 1 ? 'group' : 'groups'} to chapters.
+				</p>
 			{/if}
 		</div>
 	{/if}
