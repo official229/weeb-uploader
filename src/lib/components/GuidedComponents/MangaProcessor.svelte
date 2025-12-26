@@ -36,7 +36,8 @@
 		searchGroups,
 		getMangaAggregate,
 		getGroupById,
-		type AggregateChapter
+		type AggregateChapter,
+		type AggregateChapterEntry
 	} from '../TargetingComponents/TargetingState.svelte';
 	import { ScanGroup } from '$lib/core/UploadingState.svelte';
 	import GuidedChapterEditor from './GuidedChapterEditor.svelte';
@@ -447,6 +448,29 @@
 				existingChapters.set(key, aggregateChapter);
 			}
 
+			// Helper function to convert group indices to group IDs
+			const getGroupIdsFromIndices = (groupIndices: number[]): Set<string> => {
+				const groupIds = new Set<string>();
+				if (aggregate.groups) {
+					for (const groupIndex of groupIndices) {
+						const group = aggregate.groups[groupIndex];
+						if (group) {
+							groupIds.add(group.id);
+						}
+					}
+				}
+				return groupIds;
+			};
+
+			// Helper function to check if two sets of group IDs are equal
+			const areGroupSetsEqual = (set1: Set<string>, set2: Set<string>): boolean => {
+				if (set1.size !== set2.size) return false;
+				for (const id of set1) {
+					if (!set2.has(id)) return false;
+				}
+				return true;
+			};
+
 			// Check each chapter for duplicates
 			for (const chapter of targetingState.chapterStates) {
 				const volume = chapter.chapterVolume || 'none';
@@ -461,31 +485,42 @@
 					existingChapter.entries &&
 					Object.keys(existingChapter.entries).length > 0
 				) {
-					// Collect all group indices from all entries for this chapter
-					const existingGroupIndices = new Set<number>();
+					// Get the group IDs for the chapter being uploaded
+					const uploadingGroupIds = new Set(chapter.associatedGroup.groupIds ?? []);
+
+					// If no groups are assigned, skip duplicate check (can't match without groups)
+					if (uploadingGroupIds.size === 0) continue;
+
+					// Check each entry to see if it has the same group combination
+					let matchingEntry: AggregateChapterEntry | null = null;
 					for (const entry of Object.values(existingChapter.entries)) {
-						for (const groupIndex of entry.groups) {
-							existingGroupIndices.add(groupIndex);
+						const entryGroupIds = getGroupIdsFromIndices(entry.groups);
+						if (areGroupSetsEqual(uploadingGroupIds, entryGroupIds)) {
+							matchingEntry = entry;
+							break;
 						}
 					}
 
-					// Look up actual group IDs and names from the groups array using indices
-					const existingGroupNames: string[] = [];
-					for (const groupIndex of existingGroupIndices) {
-						// The groupIndex is an index into the aggregate.groups array
-						if (aggregate.groups && aggregate.groups[groupIndex]) {
-							const group = aggregate.groups[groupIndex];
-							existingGroupNames.push(`${group.name} (${group.id})`);
-						} else {
-							existingGroupNames.push(`Unknown Group (index: ${groupIndex})`);
+					// Only mark as duplicate if we found an entry with the exact same group combination
+					if (matchingEntry) {
+						// Get group names for display
+						const matchingGroupIds = getGroupIdsFromIndices(matchingEntry.groups);
+						const existingGroupNames: string[] = [];
+						for (const groupId of matchingGroupIds) {
+							const group = aggregate.groups?.find((g) => g.id === groupId);
+							if (group) {
+								existingGroupNames.push(`${group.name} (${group.id})`);
+							} else {
+								existingGroupNames.push(`Unknown Group (${groupId})`);
+							}
 						}
-					}
 
-					// If chapter exists, show it as a duplicate
-					duplicates.push({
-						chapter,
-						existingGroups: existingGroupNames.length > 0 ? existingGroupNames : ['Unknown groups']
-					});
+						duplicates.push({
+							chapter,
+							existingGroups:
+								existingGroupNames.length > 0 ? existingGroupNames : ['Unknown groups']
+						});
+					}
 				}
 			}
 
