@@ -12,7 +12,7 @@ export interface ChapterInfo {
 
 export interface ResolvedChapterInfo {
 	groupTitles: Record<string, string>;
-	ungroupedTitles: string[];
+	ungroupedTitles: Array<string | null>;
 }
 
 export class ChapterTitleExportResolver {
@@ -160,7 +160,7 @@ export class ChapterTitleExportResolver {
 
 		// Build group to title mapping
 		const groupTitles: Record<string, string> = {};
-		const ungroupedTitlesSet = new SvelteSet<string>();
+		const ungroupedTitlesSet = new SvelteSet<string | null>();
 
 		for (const info of chapterInfos) {
 			if (info.groupName != null && info.groupName.trim() !== '') {
@@ -173,6 +173,9 @@ export class ChapterTitleExportResolver {
 				// Collect titles from ungrouped entries
 				if (info.title && info.title.trim() !== '') {
 					ungroupedTitlesSet.add(info.title);
+				} else {
+					// Include null to indicate the chapter exists but has no title
+					ungroupedTitlesSet.add(null);
 				}
 			}
 		}
@@ -183,6 +186,22 @@ export class ChapterTitleExportResolver {
 			groupTitles,
 			ungroupedTitles
 		};
+	}
+
+	async hasSeriesEntries(seriesId: string): Promise<boolean> {
+		await this.ensureLoaded();
+
+		if (this.data === null) {
+			return false;
+		}
+
+		const seriesMap = this.data.get(seriesId);
+		if (!seriesMap) {
+			return false;
+		}
+
+		// Check if there are any entries at all (with or without groups)
+		return seriesMap.size > 0;
 	}
 
 	async getAllGroupNames(seriesId: string): Promise<string[]> {
@@ -236,7 +255,7 @@ export class ChapterTitleExportResolver {
 
 			// Build group to title mapping
 			const groupTitles: Record<string, string> = {};
-			const ungroupedTitlesSet = new SvelteSet<string>();
+			const ungroupedTitlesSet = new SvelteSet<string | null>();
 
 			for (const info of chapterInfos) {
 				if (info.groupName != null && info.groupName.trim() !== '') {
@@ -248,6 +267,9 @@ export class ChapterTitleExportResolver {
 					// Collect titles from ungrouped entries
 					if (info.title && info.title.trim() !== '') {
 						ungroupedTitlesSet.add(info.title);
+					} else {
+						// Include null to indicate the chapter exists but has no title
+						ungroupedTitlesSet.add(null);
 					}
 				}
 			}

@@ -383,14 +383,27 @@
 		processingStep = MangaProcessingStep.LOADING_GROUPS;
 		if (!targetingState.seriesId) return;
 
+		// Check if there are any entries for this series (with or without groups)
+		const hasEntries = await CHAPTER_TITLE_EXPORT_RESOLVER.hasSeriesEntries(
+			targetingState.seriesId
+		);
+
+		if (!hasEntries) {
+			console.warn('No entries found in chapter dump for this series');
+			dumpLookupFailed = true;
+			return;
+		}
+
 		// Get all unique group names for this series
 		const groupNames = await CHAPTER_TITLE_EXPORT_RESOLVER.getAllGroupNames(
 			targetingState.seriesId
 		);
 
+		// If there are no groups, that's fine - it just means all entries are ungrouped
+		// We don't set dumpLookupFailed here because the series has entries
 		if (groupNames.length === 0) {
-			console.warn('No groups found in chapter dump');
-			dumpLookupFailed = true;
+			console.log('No groups found in chapter dump, but series has entries (likely all ungrouped)');
+			targetingState.availableScanGroups = [];
 			return;
 		}
 
@@ -550,22 +563,29 @@
 
 			// Try to find a matching group title first
 			let title: string | null = null;
+			let foundMatch = false;
 			for (const groupName of assignedGroupNames) {
 				if (groupName in chapterInfo.groupTitles) {
 					title = chapterInfo.groupTitles[groupName];
+					foundMatch = true;
+					console.log(`found group name match for group: ${groupName} with title: ${title}`);
 					break;
 				}
 			}
 
 			// Only use ungrouped title if the chapter path contains "[no group]"
 			// This indicates the chapter explicitly has no group assigned
-			if (title === null && isNoGroupChapter) {
+			if (!foundMatch && isNoGroupChapter) {
 				if (chapterInfo.ungroupedTitles.length > 0) {
 					title = chapterInfo.ungroupedTitles[0];
+					foundMatch = true;
+					console.log(
+						`found ungrouped title match for chapter: ${chapter.originalFolderPath} with title: ${title}`
+					);
 				}
 			}
 
-			if (title !== null) {
+			if (foundMatch) {
 				chapter.chapterTitle = title;
 			} else {
 				failedCount++;

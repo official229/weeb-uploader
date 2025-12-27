@@ -78,15 +78,44 @@
 		savedButtonRect = null;
 	}
 
-	function getDisplayTitle(info: ResolvedChapterInfo): string | null {
-		// Prioritize ungrouped titles, then fall back to first group title if available
+	function getDisplayTitle(
+		info: ResolvedChapterInfo,
+		chapterPath: string | null | undefined
+	): string | null {
+		// Check if this is a "[no group]" chapter
+		const isNoGroupChapter = chapterPath?.includes('[no group]') ?? false;
+
+		// If the chapter path contains a group name, try to match it first
+		if (chapterPath && !isNoGroupChapter) {
+			// Check if any group name from groupTitles appears in the chapter path
+			for (const groupName of Object.keys(info.groupTitles)) {
+				if (chapterPath.includes(groupName)) {
+					const groupTitle = info.groupTitles[groupName];
+					if (groupTitle && groupTitle.trim() !== '') {
+						return groupTitle;
+					}
+				}
+			}
+		}
+
+		// If it's a "[no group]" chapter, prioritize ungrouped titles
+		if (isNoGroupChapter) {
+			if (info.ungroupedTitles.length > 0) {
+				return info.ungroupedTitles[0];
+			}
+		}
+
+		// Fall back to ungrouped titles if available
 		if (info.ungroupedTitles.length > 0) {
 			return info.ungroupedTitles[0];
 		}
+
+		// Finally, fall back to first group title if available
 		const groupNames = Object.keys(info.groupTitles);
 		if (groupNames.length > 0) {
 			return info.groupTitles[groupNames[0]];
 		}
+
 		return null;
 	}
 
@@ -118,7 +147,7 @@
 		// Update chapter values
 		chapter.chapterVolume = combination.volume || null;
 		chapter.chapterNumber = combination.chapter || null;
-		chapter.chapterTitle = getDisplayTitle(combination.info);
+		chapter.chapterTitle = getDisplayTitle(combination.info, chapter.originalFolderPath);
 
 		stopEditingVolumeChapter();
 	}
@@ -130,7 +159,7 @@
 	}): string {
 		const vol = combination.volume || 'N/A';
 		const ch = combination.chapter || 'N/A';
-		const title = getDisplayTitle(combination.info);
+		const title = getDisplayTitle(combination.info, chapter.originalFolderPath);
 		const titleStr = title ? ` - ${title}` : '';
 		return `Vol ${vol}, Ch ${ch}${titleStr}`;
 	}

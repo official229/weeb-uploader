@@ -22,6 +22,7 @@
 
 	let lookupState = $state<LookupState>(LookupState.IDLE);
 	let groupCount = $state<number>(0);
+	let chapterCount = $state<number>(0);
 	let error = $state<string | null>(null);
 	let addedGroupsCount = $state<number>(0);
 	let failedGroups = $state<string[]>([]);
@@ -53,6 +54,7 @@
 				// Reset state when series is cleared
 				lookupState = LookupState.IDLE;
 				groupCount = 0;
+				chapterCount = 0;
 				error = null;
 				addedGroupsCount = 0;
 				failedGroups = [];
@@ -83,6 +85,7 @@
 		lookupState = LookupState.LOADING;
 		error = null;
 		groupCount = 0;
+		chapterCount = 0;
 		addedGroupsCount = 0;
 		failedGroups = [];
 		appliedGroupsCount = 0;
@@ -94,17 +97,25 @@
 				// Explicitly load the CSV data
 				await CHAPTER_TITLE_EXPORT_RESOLVER.load();
 
-				// Get all unique group names for this series
-				const groupNames = await CHAPTER_TITLE_EXPORT_RESOLVER.getAllGroupNames(seriesId);
+				// Check if there are any entries for this series (with or without groups)
+				const hasEntries = await CHAPTER_TITLE_EXPORT_RESOLVER.hasSeriesEntries(seriesId);
 
-				if (groupNames.length === 0) {
+				if (!hasEntries) {
 					lookupState = LookupState.IDLE;
 					lastProcessedSeriesId = seriesId;
 					return;
 				}
 
+				// Get all unique group names for this series
+				const groupNames = await CHAPTER_TITLE_EXPORT_RESOLVER.getAllGroupNames(seriesId);
+
+				// Get unique volume/chapter combinations to count total chapters
+				const volumeChapterCombinations =
+					await CHAPTER_TITLE_EXPORT_RESOLVER.getUniqueVolumeChapterCombinations(seriesId);
+
 				lookupState = LookupState.LOADED;
 				groupCount = groupNames.length;
+				chapterCount = volumeChapterCombinations.length;
 
 				// Clear existing available groups since we have dump data
 				targetingState.availableScanGroups = [];
@@ -282,9 +293,13 @@
 				let foundMatch = false;
 				for (const groupName of assignedGroupNames) {
 					if (groupName in chapterInfo.groupTitles) {
-						title = chapterInfo.groupTitles[groupName];
-						foundMatch = true;
-						break;
+						const groupTitle = chapterInfo.groupTitles[groupName];
+						// Only consider it a match if the title is non-empty
+						if (groupTitle && groupTitle.trim() !== '') {
+							title = groupTitle;
+							foundMatch = true;
+							break;
+						}
 					}
 				}
 
@@ -292,6 +307,7 @@
 				// This indicates the chapter explicitly has no group assigned
 				if (!foundMatch && isNoGroupChapter) {
 					if (chapterInfo.ungroupedTitles.length > 0) {
+						// Get the first ungrouped title (can be null if chapter has no title)
 						title = chapterInfo.ungroupedTitles[0];
 						foundMatch = true;
 					}
@@ -336,7 +352,8 @@
 		<div class="flex flex-col gap-1">
 			<p class="text-sm text-app">
 				Found {groupCount}
-				{groupCount === 1 ? 'group' : 'groups'} in chapter dump.
+				{groupCount === 1 ? 'group' : 'groups'} and {chapterCount}
+				{chapterCount === 1 ? 'chapter' : 'chapters'} in chapter dump.
 			</p>
 			{#if addedGroupsCount > 0}
 				<p class="text-sm text-green-500 dark:text-green-400">
