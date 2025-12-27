@@ -59,7 +59,7 @@
 		guidedState: GuidedState;
 		zipFile: File;
 		class?: string;
-		onProcessingComplete: (status: ProcessingStatus) => void;
+		onProcessingComplete: (status: ProcessingStatus, weebdexId?: string) => void;
 	}
 
 	let { guidedState, zipFile, class: className = '', onProcessingComplete }: Props = $props();
@@ -708,7 +708,12 @@
 			zipFile,
 			success ? MangaProcessingStatus.COMPLETED : MangaProcessingStatus.ERROR
 		);
-		onProcessingComplete(status);
+		// Pass weebdex ID when status is success
+		if (success && targetingState.seriesId) {
+			onProcessingComplete(status, targetingState.seriesId);
+		} else {
+			onProcessingComplete(status);
+		}
 	}
 
 	// Check if there are any issues that should mark this as a warning

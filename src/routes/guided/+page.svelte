@@ -13,9 +13,10 @@
 		automationStateContext
 	} from '$lib/components/GuidedComponents/GuidedState.svelte';
 	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
-	import { setContext } from 'svelte';
+	import { setContext, onMount } from 'svelte';
 	import ThemeToggle from '$lib/components/Common/ThemeToggle.svelte';
 	import TargetingAuthValidator from '$lib/components/TargetingComponents/TargetingAuthValidator.svelte';
+	import CompletedWeebdexIdsViewer from '$lib/components/GuidedComponents/CompletedWeebdexIdsViewer.svelte';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 
@@ -28,6 +29,16 @@
 
 	let currentZipFile = $state<File | null>(null);
 	let mangaProcessorRef = $state<MangaProcessor | null>(null);
+
+	// Store session timestamp on first load
+	const COMPLETED_IDS_KEY = 'completedWeebdexIds';
+	let sessionTimestamp = $state<string | null>(null);
+
+	// Initialize session timestamp on page load (new timestamp each time page loads)
+	onMount(() => {
+		// Create new timestamp (ISO format) for this page load
+		sessionTimestamp = new Date().toISOString();
+	});
 
 	function onFolderSelectionDone() {
 		guidedState.workflowStep = GuidedWorkflowStep.SELECTING_MANGA_FOLDERS;
@@ -52,12 +63,33 @@
 		// (handled in MangaProcessor.startUpload())
 	}
 
-	function onProcessingComplete(status: ProcessingStatus) {
+	function onProcessingComplete(status: ProcessingStatus, weebdexId?: string) {
 		const currentZip = guidedState.currentZip;
 		if (currentZip) {
 			// Update status based on processing result
 			if (status === 'success') {
 				guidedState.setZipStatus(currentZip.file, MangaProcessingStatus.COMPLETED);
+				// Save weebdex ID to localStorage when processing completes successfully
+				if (weebdexId && sessionTimestamp) {
+					try {
+						const allSessions = JSON.parse(
+							localStorage.getItem(COMPLETED_IDS_KEY) || '{}'
+						) as Record<string, string[]>;
+
+						// Initialize array for this timestamp if it doesn't exist
+						if (!allSessions[sessionTimestamp]) {
+							allSessions[sessionTimestamp] = [];
+						}
+
+						// Add ID if not already present
+						if (!allSessions[sessionTimestamp].includes(weebdexId)) {
+							allSessions[sessionTimestamp].push(weebdexId);
+							localStorage.setItem(COMPLETED_IDS_KEY, JSON.stringify(allSessions));
+						}
+					} catch (error) {
+						console.error('Failed to save weebdex ID to localStorage:', error);
+					}
+				}
 			} else if (status === 'warning') {
 				guidedState.setZipStatus(currentZip.file, MangaProcessingStatus.WARNING);
 			} else if (status === 'error') {
@@ -112,6 +144,8 @@
 	{#if authSettingsVisible}
 		<TargetingAuthValidator />
 	{/if}
+
+	<CompletedWeebdexIdsViewer />
 
 	{#if guidedState.workflowStep === GuidedWorkflowStep.SELECTING_ROOT_FOLDER}
 		<GuidedFolderSelector
