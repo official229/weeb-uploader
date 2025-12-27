@@ -293,13 +293,11 @@
 				let foundMatch = false;
 				for (const groupName of assignedGroupNames) {
 					if (groupName in chapterInfo.groupTitles) {
-						const groupTitle = chapterInfo.groupTitles[groupName];
-						// Only consider it a match if the title is non-empty
-						if (groupTitle && groupTitle.trim() !== '') {
-							title = groupTitle;
-							foundMatch = true;
-							break;
-						}
+						// Group exists - title can be null if the chapter has no title
+						// This is a valid match even if title is null
+						title = chapterInfo.groupTitles[groupName];
+						foundMatch = true;
+						break;
 					}
 				}
 

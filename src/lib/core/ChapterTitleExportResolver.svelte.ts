@@ -11,7 +11,7 @@ export interface ChapterInfo {
 }
 
 export interface ResolvedChapterInfo {
-	groupTitles: Record<string, string>;
+	groupTitles: Record<string, string | null>;
 	ungroupedTitles: Array<string | null>;
 }
 
@@ -159,15 +159,19 @@ export class ChapterTitleExportResolver {
 		}
 
 		// Build group to title mapping
-		const groupTitles: Record<string, string> = {};
+		const groupTitles: Record<string, string | null> = {};
 		const ungroupedTitlesSet = new SvelteSet<string | null>();
 
 		for (const info of chapterInfos) {
 			if (info.groupName != null && info.groupName.trim() !== '') {
 				// If multiple entries have the same group, the last one wins
 				// (or we could keep the first, but last seems reasonable for updates)
+				// Always add the group, even if title is null/empty, to track that the group exists
 				if (info.title && info.title.trim() !== '') {
 					groupTitles[info.groupName] = info.title;
+				} else {
+					// Group exists but has no title - set to null
+					groupTitles[info.groupName] = null;
 				}
 			} else {
 				// Collect titles from ungrouped entries
@@ -254,14 +258,18 @@ export class ChapterTitleExportResolver {
 			const [volume, chapter] = key.split('|');
 
 			// Build group to title mapping
-			const groupTitles: Record<string, string> = {};
+			const groupTitles: Record<string, string | null> = {};
 			const ungroupedTitlesSet = new SvelteSet<string | null>();
 
 			for (const info of chapterInfos) {
 				if (info.groupName != null && info.groupName.trim() !== '') {
 					// If multiple entries have the same group, the last one wins
+					// Always add the group, even if title is null/empty, to track that the group exists
 					if (info.title && info.title.trim() !== '') {
 						groupTitles[info.groupName] = info.title;
+					} else {
+						// Group exists but has no title - set to null
+						groupTitles[info.groupName] = null;
 					}
 				} else {
 					// Collect titles from ungrouped entries

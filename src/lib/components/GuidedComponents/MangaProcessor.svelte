@@ -566,9 +566,12 @@
 			let foundMatch = false;
 			for (const groupName of assignedGroupNames) {
 				if (groupName in chapterInfo.groupTitles) {
+					// Group exists - title can be null if the chapter has no title
 					title = chapterInfo.groupTitles[groupName];
 					foundMatch = true;
-					console.log(`found group name match for group: ${groupName} with title: ${title}`);
+					console.log(
+						`found group name match for group: ${groupName} with title: ${title ?? 'null'}`
+					);
 					break;
 				}
 			}
