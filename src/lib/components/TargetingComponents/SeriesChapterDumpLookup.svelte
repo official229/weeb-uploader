@@ -235,8 +235,10 @@
 		try {
 			// Create a map of group ID to group name for quick lookup
 			const groupIdToNameMap = new Map<string, string>();
+			const groupNameToIdMap = new Map<string, string>();
 			for (const group of targetingState.availableScanGroups) {
 				groupIdToNameMap.set(group.groupId, group.groupName);
+				groupNameToIdMap.set(group.groupName, group.groupId);
 			}
 
 			// Iterate through all chapters
@@ -291,12 +293,15 @@
 				// Try to find a matching group title first
 				let title: string | null = null;
 				let foundMatch = false;
+				let matchedGroupName: string | null = null;
+
 				for (const groupName of assignedGroupNames) {
 					if (groupName in chapterInfo.groupTitles) {
 						// Group exists - title can be null if the chapter has no title
 						// This is a valid match even if title is null
 						title = chapterInfo.groupTitles[groupName];
 						foundMatch = true;
+						matchedGroupName = groupName;
 						break;
 					}
 				}
@@ -313,6 +318,32 @@
 
 				if (foundMatch) {
 					chapter.chapterTitle = title;
+
+					// If we matched with only 1 group, but the chapter has multiple groups in the CSV,
+					// assign all groups and log a warning
+					if (matchedGroupName) {
+						const allGroupsInChapter = Object.keys(chapterInfo.groupTitles);
+
+						// Check if we only matched 1 group but there are more groups for this chapter
+						if (allGroupsInChapter.length > 1) {
+							// Get all group IDs for all groups in this chapter
+							const allGroupIds = allGroupsInChapter
+								.map((name) => groupNameToIdMap.get(name))
+								.filter((id): id is string => id !== undefined);
+
+							// Update chapter with all groups
+							const existingGroupIds = new Set(chapter.associatedGroup.groupIds ?? []);
+							for (const groupId of allGroupIds) {
+								existingGroupIds.add(groupId);
+							}
+							chapter.associatedGroup.groupIds = Array.from(existingGroupIds);
+
+							console.log(
+								`Partial group match: matched ${matchedGroupName}, assigned all groups: ${allGroupsInChapter.join(', ')}`
+							);
+						}
+					}
+
 					assignedCount++;
 				} else {
 					failed.push({

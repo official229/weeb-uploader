@@ -6,8 +6,8 @@ export interface ChapterInfo {
 	volume: string;
 	chapter: string;
 	title: string;
-	groupName: string | null;
-	altNames: Array<{ [lang: string]: string }>;
+	groupNames: string[];
+	groupAltNames: Array<Array<{ [lang: string]: string }>>;
 }
 
 export interface ResolvedChapterInfo {
@@ -16,7 +16,7 @@ export interface ResolvedChapterInfo {
 }
 
 export class ChapterTitleExportResolver {
-	private data = $state<SvelteMap<string, SvelteMap<string, ChapterInfo[]>> | null>(null);
+	private data = $state<SvelteMap<string, SvelteMap<string, ChapterInfo>> | null>(null);
 	private isLoading = $state<boolean>(false);
 	private loadError = $state<Error | null>(null);
 	private loadPromise: Promise<void> | null = null;
@@ -73,7 +73,7 @@ export class ChapterTitleExportResolver {
 		await this.load();
 	}
 
-	private parseCSV(csvText: string): SvelteMap<string, SvelteMap<string, ChapterInfo[]>> {
+	private parseCSV(csvText: string): SvelteMap<string, SvelteMap<string, ChapterInfo>> {
 		const records = parse(csvText, {
 			columns: true,
 			skip_empty_lines: true,
@@ -83,11 +83,11 @@ export class ChapterTitleExportResolver {
 			chapter: string;
 			title: string;
 			weebdex_id: string;
-			name: string | null;
-			alt_names: string | null;
+			group_names: string | null;
+			group_alt_names: string | null;
 		}>;
 
-		const dataMap = new SvelteMap<string, SvelteMap<string, ChapterInfo[]>>();
+		const dataMap = new SvelteMap<string, SvelteMap<string, ChapterInfo>>();
 
 		for (const record of records) {
 			const seriesId = record.weebdex_id;
@@ -95,27 +95,71 @@ export class ChapterTitleExportResolver {
 			const chapter = record.chapter || '';
 			const key = `${volume}|${chapter}`;
 
-			// Parse alt_names JSON string
-			let altNames: Array<{ [lang: string]: string }> = [];
-			if (record.alt_names != null && record.alt_names.trim() !== '' && record.alt_names !== '[]') {
+			// Parse group_names JSON array
+			let groupNames: string[] = [];
+			if (
+				record.group_names != null &&
+				record.group_names.trim() !== '' &&
+				record.group_names !== '[]'
+			) {
 				try {
-					// The JSON is double-escaped, so we need to parse it
-					const parsed = JSON.parse(record.alt_names);
+					const parsed = JSON.parse(record.group_names);
 					if (Array.isArray(parsed)) {
-						altNames = parsed;
+						groupNames = parsed.filter(
+							(name): name is string => typeof name === 'string' && name.trim() !== ''
+						);
 					}
 				} catch (error) {
-					// If parsing fails, leave altNames as empty array
-					console.warn(`Failed to parse alt_names for ${seriesId}:`, error);
+					console.warn(`Failed to parse group_names for ${seriesId}:`, error);
 				}
+			}
+
+			// Parse group_alt_names JSON array of arrays
+			let groupAltNames: Array<Array<{ [lang: string]: string }>> = [];
+			if (
+				record.group_alt_names != null &&
+				record.group_alt_names.trim() !== '' &&
+				record.group_alt_names !== '[]'
+			) {
+				try {
+					const parsed = JSON.parse(record.group_alt_names);
+					if (Array.isArray(parsed)) {
+						groupAltNames = parsed.map((altNameEntry) => {
+							if (Array.isArray(altNameEntry)) {
+								return altNameEntry;
+							}
+							// Handle case where it's a JSON string that needs parsing
+							if (typeof altNameEntry === 'string') {
+								try {
+									const innerParsed = JSON.parse(altNameEntry);
+									return Array.isArray(innerParsed) ? innerParsed : [];
+								} catch {
+									return [];
+								}
+							}
+							return [];
+						});
+					}
+				} catch (error) {
+					console.warn(`Failed to parse group_alt_names for ${seriesId}:`, error);
+				}
+			}
+
+			// Ensure groupAltNames has the same length as groupNames
+			while (groupAltNames.length < groupNames.length) {
+				groupAltNames.push([]);
+			}
+			// Trim if longer (shouldn't happen, but be safe)
+			if (groupAltNames.length > groupNames.length) {
+				groupAltNames = groupAltNames.slice(0, groupNames.length);
 			}
 
 			const chapterInfo: ChapterInfo = {
 				volume,
 				chapter,
 				title: record.title || '',
-				groupName: record.name != null && record.name.trim() !== '' ? record.name : null,
-				altNames
+				groupNames,
+				groupAltNames
 			};
 
 			if (!dataMap.has(seriesId)) {
@@ -123,11 +167,9 @@ export class ChapterTitleExportResolver {
 			}
 
 			const seriesMap = dataMap.get(seriesId)!;
-			if (!seriesMap.has(key)) {
-				seriesMap.set(key, []);
-			}
-
-			seriesMap.get(key)!.push(chapterInfo);
+			// Since each row is now one chapter, we can directly set it
+			// If there are duplicates (shouldn't happen), the last one wins
+			seriesMap.set(key, chapterInfo);
 		}
 
 		return dataMap;
@@ -153,38 +195,31 @@ export class ChapterTitleExportResolver {
 		const chapterStr = chapter || '';
 		const key = `${volumeStr}|${chapterStr}`;
 
-		const chapterInfos = seriesMap.get(key);
-		if (!chapterInfos || chapterInfos.length === 0) {
+		const chapterInfo = seriesMap.get(key);
+		if (!chapterInfo) {
 			return null;
 		}
 
 		// Build group to title mapping
 		const groupTitles: Record<string, string | null> = {};
-		const ungroupedTitlesSet = new SvelteSet<string | null>();
+		const ungroupedTitles: Array<string | null> = [];
 
-		for (const info of chapterInfos) {
-			if (info.groupName != null && info.groupName.trim() !== '') {
-				// If multiple entries have the same group, the last one wins
-				// (or we could keep the first, but last seems reasonable for updates)
-				// Always add the group, even if title is null/empty, to track that the group exists
-				if (info.title && info.title.trim() !== '') {
-					groupTitles[info.groupName] = info.title;
-				} else {
-					// Group exists but has no title - set to null
-					groupTitles[info.groupName] = null;
-				}
+		if (chapterInfo.groupNames.length > 0) {
+			// Chapter has groups - map each group to the title
+			// All groups share the same title for this chapter
+			const title = chapterInfo.title && chapterInfo.title.trim() !== '' ? chapterInfo.title : null;
+			for (const groupName of chapterInfo.groupNames) {
+				groupTitles[groupName] = title;
+			}
+		} else {
+			// No groups - this is an ungrouped chapter
+			if (chapterInfo.title && chapterInfo.title.trim() !== '') {
+				ungroupedTitles.push(chapterInfo.title);
 			} else {
-				// Collect titles from ungrouped entries
-				if (info.title && info.title.trim() !== '') {
-					ungroupedTitlesSet.add(info.title);
-				} else {
-					// Include null to indicate the chapter exists but has no title
-					ungroupedTitlesSet.add(null);
-				}
+				// Include null to indicate the chapter exists but has no title
+				ungroupedTitles.push(null);
 			}
 		}
-
-		const ungroupedTitles = Array.from(ungroupedTitlesSet);
 
 		return {
 			groupTitles,
@@ -221,11 +256,9 @@ export class ChapterTitleExportResolver {
 		}
 
 		const groupNamesSet = new SvelteSet<string>();
-		for (const chapterInfos of seriesMap.values()) {
-			for (const info of chapterInfos) {
-				if (info.groupName != null && info.groupName.trim() !== '') {
-					groupNamesSet.add(info.groupName);
-				}
+		for (const chapterInfo of seriesMap.values()) {
+			for (const groupName of chapterInfo.groupNames) {
+				groupNamesSet.add(groupName);
 			}
 		}
 
@@ -246,57 +279,41 @@ export class ChapterTitleExportResolver {
 			return [];
 		}
 
-		// Use a map to track unique combinations and their resolved info
-		const combinationsMap = new SvelteMap<
-			string,
-			{ volume: string; chapter: string; info: ResolvedChapterInfo }
-		>();
+		// Convert each chapter to the resolved format
+		const combinations: Array<{ volume: string; chapter: string; info: ResolvedChapterInfo }> = [];
 
-		for (const [key, chapterInfos] of seriesMap.entries()) {
-			if (chapterInfos.length === 0) continue;
-
+		for (const [key, chapterInfo] of seriesMap.entries()) {
 			const [volume, chapter] = key.split('|');
 
 			// Build group to title mapping
 			const groupTitles: Record<string, string | null> = {};
-			const ungroupedTitlesSet = new SvelteSet<string | null>();
+			const ungroupedTitles: Array<string | null> = [];
 
-			for (const info of chapterInfos) {
-				if (info.groupName != null && info.groupName.trim() !== '') {
-					// If multiple entries have the same group, the last one wins
-					// Always add the group, even if title is null/empty, to track that the group exists
-					if (info.title && info.title.trim() !== '') {
-						groupTitles[info.groupName] = info.title;
-					} else {
-						// Group exists but has no title - set to null
-						groupTitles[info.groupName] = null;
-					}
+			if (chapterInfo.groupNames.length > 0) {
+				// Chapter has groups - map each group to the title
+				// All groups share the same title for this chapter
+				const title =
+					chapterInfo.title && chapterInfo.title.trim() !== '' ? chapterInfo.title : null;
+				for (const groupName of chapterInfo.groupNames) {
+					groupTitles[groupName] = title;
+				}
+			} else {
+				// No groups - this is an ungrouped chapter
+				if (chapterInfo.title && chapterInfo.title.trim() !== '') {
+					ungroupedTitles.push(chapterInfo.title);
 				} else {
-					// Collect titles from ungrouped entries
-					if (info.title && info.title.trim() !== '') {
-						ungroupedTitlesSet.add(info.title);
-					} else {
-						// Include null to indicate the chapter exists but has no title
-						ungroupedTitlesSet.add(null);
-					}
+					// Include null to indicate the chapter exists but has no title
+					ungroupedTitles.push(null);
 				}
 			}
-
-			const ungroupedTitles = Array.from(ungroupedTitlesSet);
 
 			const resolvedInfo: ResolvedChapterInfo = {
 				groupTitles,
 				ungroupedTitles
 			};
 
-			// Use the key as the unique identifier
-			if (!combinationsMap.has(key)) {
-				combinationsMap.set(key, { volume, chapter, info: resolvedInfo });
-			}
+			combinations.push({ volume, chapter, info: resolvedInfo });
 		}
-
-		// Convert to array and sort by volume then chapter (treating as numbers when possible)
-		const combinations = Array.from(combinationsMap.values());
 
 		// Sort: first by volume (numeric if possible), then by chapter (numeric if possible)
 		combinations.sort((a, b) => {
