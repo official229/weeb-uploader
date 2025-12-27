@@ -65,7 +65,9 @@ export class ChapterUploader {
 
 		try {
 			// check for any preexisting upload sessions and delete them
+			console.log('Deleting preexisting upload sessions');
 			await this.deletePreexistingUploadSessions();
+			console.log('Preexisting upload sessions deleted');
 
 			const chaptersToUpload = this.chapters.filter(
 				(chapter) => chapter.status !== ChapterStatus.COMPLETED
@@ -75,9 +77,11 @@ export class ChapterUploader {
 			for (let i = 0; i < chaptersToUpload.length; i++) {
 				this.currentChapterIndex = i;
 				const chapter = chaptersToUpload[i];
+				console.log(`Uploading chapter ${i + 1}. of ${chaptersToUpload.length}:`, chapter);
 
 				// Skip if already completed
 				if (chapter.status === ChapterStatus.COMPLETED) {
+					console.log(`Chapter ${i + 1}. already completed, skipping`);
 					this.checkProgress();
 					continue;
 				}
@@ -103,6 +107,7 @@ export class ChapterUploader {
 			this.progress = 1;
 			this.error = null;
 		} catch (error) {
+			console.error('Chapter Uploader: Upload error:', error);
 			this.status = UploaderStatus.FAILED;
 			this.progress = 0;
 

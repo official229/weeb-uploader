@@ -87,6 +87,8 @@
 		// Only reset chapters that are in FAILED state, not completed ones
 		for (const chapter of targetingState.chapterStates) {
 			if (chapter.status === ChapterStatus.FAILED) {
+				console.log('Resetting failed chapter:', chapter);
+
 				chapter.status = ChapterStatus.NOT_STARTED;
 				chapter.progress = 0;
 				chapter.error = null;
