@@ -292,19 +292,21 @@ export class ChapterTitleExportResolver {
 
 		// Sort: first by volume (numeric if possible), then by chapter (numeric if possible)
 		combinations.sort((a, b) => {
-			// Try to parse as numbers for proper numeric sorting
-			const volA = a.volume === '' ? -1 : Number.parseFloat(a.volume) || Number.POSITIVE_INFINITY;
-			const volB = b.volume === '' ? -1 : Number.parseFloat(b.volume) || Number.POSITIVE_INFINITY;
+			// Sort by volume first using localeCompare with numeric option
+			const volumeCompare = a.volume.localeCompare(b.volume, undefined, {
+				numeric: true,
+				sensitivity: 'base'
+			});
 
-			if (volA !== volB) {
-				return volA - volB;
+			if (volumeCompare !== 0) {
+				return volumeCompare;
 			}
 
 			// If volumes are equal, sort by chapter
-			const chA = a.chapter === '' ? -1 : Number.parseFloat(a.chapter) || Number.POSITIVE_INFINITY;
-			const chB = b.chapter === '' ? -1 : Number.parseFloat(b.chapter) || Number.POSITIVE_INFINITY;
-
-			return chA - chB;
+			return a.chapter.localeCompare(b.chapter, undefined, {
+				numeric: true,
+				sensitivity: 'base'
+			});
 		});
 
 		return combinations;
