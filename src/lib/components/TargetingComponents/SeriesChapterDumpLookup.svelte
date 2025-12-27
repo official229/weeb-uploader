@@ -34,7 +34,7 @@
 		volume: string | null;
 		chapter: string | null;
 		folderPath: string | null;
-		reason: 'no_groups' | 'no_chapter_info' | 'no_matching_group' | 'no_title';
+		reason: 'no_groups' | 'no_chapter_info' | 'no_matching_group';
 	}
 
 	let failedTitleMatches = $state<FailedTitleMatch[]>([]);
@@ -274,16 +274,6 @@
 					continue;
 				}
 
-				if (!chapterInfo.title) {
-					failed.push({
-						volume: chapter.chapterVolume,
-						chapter: chapter.chapterNumber,
-						folderPath: chapter.originalFolderPath,
-						reason: 'no_title'
-					});
-					continue;
-				}
-
 				// Check if any of the chapter's assigned group names match the CSV group names
 				const hasMatchingGroup = assignedGroupNames.some((name) =>
 					chapterInfo.groupNames.includes(name)
@@ -406,8 +396,6 @@
 										No groups assigned
 									{:else if failedMatch.reason === 'no_chapter_info'}
 										No matching volume/chapter in export
-									{:else if failedMatch.reason === 'no_title'}
-										No title in export
 									{:else if failedMatch.reason === 'no_matching_group'}
 										No matching group in export
 									{/if})

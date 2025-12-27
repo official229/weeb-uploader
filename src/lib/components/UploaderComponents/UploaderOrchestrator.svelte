@@ -62,7 +62,7 @@
 	let chapterUploader = $state<ChapterUploader | null>(null);
 	let isUploading = $state(false);
 
-	function startUpload() {
+	export function startUpload() {
 		if (!authContext.apiToken) {
 			alert('Please set up API authentication first');
 			return;

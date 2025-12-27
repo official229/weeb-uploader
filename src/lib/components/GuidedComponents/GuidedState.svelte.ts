@@ -11,7 +11,18 @@ export enum MangaProcessingStatus {
 	PENDING = 'PENDING',
 	PROCESSING = 'PROCESSING',
 	COMPLETED = 'COMPLETED',
-	ERROR = 'ERROR'
+	ERROR = 'ERROR',
+	WARNING = 'WARNING'
+}
+
+export enum MangaProcessingStep {
+	LOADING = 'LOADING',
+	EXTRACTING = 'EXTRACTING',
+	READY = 'READY',
+	SERIES_LOOKUP = 'SERIES_LOOKUP',
+	READY_WARNING = 'READY_WARNING', // Ready but has issues (duplicates, failed lookups, etc.)
+	UPLOADING = 'UPLOADING',
+	COMPLETED = 'COMPLETED'
 }
 
 export interface ZipFileInfo {
@@ -38,17 +49,63 @@ export class GuidedState {
 	public get unprocessedZips(): ZipFileInfo[] {
 		return this.zipFiles.filter(
 			(zip) =>
+				this.selectedZipFiles.includes(zip.file) && zip.status !== MangaProcessingStatus.COMPLETED
+		);
+	}
+
+	public get pendingZips(): ZipFileInfo[] {
+		return this.zipFiles.filter(
+			(zip) =>
 				this.selectedZipFiles.includes(zip.file) && zip.status === MangaProcessingStatus.PENDING
 		);
 	}
 
+	public get warningZips(): ZipFileInfo[] {
+		return this.zipFiles.filter(
+			(zip) =>
+				this.selectedZipFiles.includes(zip.file) && zip.status === MangaProcessingStatus.WARNING
+		);
+	}
+
+	public get errorZips(): ZipFileInfo[] {
+		return this.zipFiles.filter(
+			(zip) =>
+				this.selectedZipFiles.includes(zip.file) && zip.status === MangaProcessingStatus.ERROR
+		);
+	}
+
+	public get completedZips(): ZipFileInfo[] {
+		return this.zipFiles.filter(
+			(zip) =>
+				this.selectedZipFiles.includes(zip.file) && zip.status === MangaProcessingStatus.COMPLETED
+		);
+	}
+
+	public get processingZips(): ZipFileInfo[] {
+		return this.zipFiles.filter(
+			(zip) =>
+				this.selectedZipFiles.includes(zip.file) && zip.status === MangaProcessingStatus.PROCESSING
+		);
+	}
+
 	public get nextZip(): ZipFileInfo | null {
-		const unprocessed = this.unprocessedZips;
-		if (unprocessed.length === 0) {
+		// For automation, only return PENDING zips (skip WARNING, ERROR, PROCESSING)
+		const pending = this.pendingZips;
+		if (pending.length === 0) {
 			return null;
 		}
-		// Return the first unprocessed zip
-		return unprocessed[0];
+
+		// Filter out currently selected zip (not all selected zips)
+		const currentZip = this.currentZip;
+		const filteredPending = currentZip
+			? pending.filter((zip) => zip.file !== currentZip.file)
+			: pending;
+		if (filteredPending.length === 0) {
+			return null;
+		}
+
+		// Return the first pending zip
+		return filteredPending[0];
 	}
 
 	public setZipStatus(zipFile: File, status: MangaProcessingStatus) {
@@ -92,4 +149,25 @@ export class GuidedState {
 	}
 }
 
+export class AutomationState {
+	public enabled = $state<boolean>(false);
+
+	public get isActive(): boolean {
+		return this.enabled;
+	}
+
+	public enable() {
+		this.enabled = true;
+	}
+
+	public disable() {
+		this.enabled = false;
+	}
+
+	public reset() {
+		this.enabled = false;
+	}
+}
+
 export const guidedStateContext = createContext<GuidedState>();
+export const automationStateContext = createContext<AutomationState>();

@@ -3,11 +3,14 @@
 	import MangaFolderSelector from '$lib/components/GuidedComponents/MangaFolderSelector.svelte';
 	import MangaProcessingTabs from '$lib/components/GuidedComponents/MangaProcessingTabs.svelte';
 	import MangaProcessor from '$lib/components/GuidedComponents/MangaProcessor.svelte';
+	import type { ProcessingStatus } from '$lib/components/GuidedComponents/MangaProcessor.svelte';
 	import {
 		GuidedState,
 		GuidedWorkflowStep,
 		MangaProcessingStatus,
-		guidedStateContext
+		guidedStateContext,
+		AutomationState,
+		automationStateContext
 	} from '$lib/components/GuidedComponents/GuidedState.svelte';
 	import { apiAuthContext, ApiAuthContext } from '$lib/core/GlobalState.svelte';
 	import { setContext } from 'svelte';
@@ -18,10 +21,13 @@
 
 	// Set up contexts
 	const guidedState = new GuidedState();
+	const automationState = new AutomationState();
 	setContext(guidedStateContext, guidedState);
+	setContext(automationStateContext, automationState);
 	setContext(apiAuthContext, new ApiAuthContext());
 
 	let currentZipFile = $state<File | null>(null);
+	let mangaProcessorRef = $state<MangaProcessor | null>(null);
 
 	function onFolderSelectionDone() {
 		guidedState.workflowStep = GuidedWorkflowStep.SELECTING_MANGA_FOLDERS;
@@ -42,20 +48,42 @@
 
 	function onZipSelected(zipFile: File) {
 		currentZipFile = zipFile;
-		guidedState.setZipStatus(zipFile, MangaProcessingStatus.PROCESSING);
+		// Don't set status to PROCESSING here - that should only happen when upload actually starts
+		// (handled in MangaProcessor.startUpload())
 	}
 
-	function onProcessingComplete() {
+	function onProcessingComplete(status: ProcessingStatus) {
+		const currentZip = guidedState.currentZip;
+		if (currentZip) {
+			// Update status based on processing result
+			if (status === 'success') {
+				guidedState.setZipStatus(currentZip.file, MangaProcessingStatus.COMPLETED);
+			} else if (status === 'warning') {
+				guidedState.setZipStatus(currentZip.file, MangaProcessingStatus.WARNING);
+			} else if (status === 'error') {
+				guidedState.setZipStatus(currentZip.file, MangaProcessingStatus.ERROR);
+			}
+		}
+
 		// Move to next zip file automatically
+		// Automation mode will continue checking when the new zip is ready
 		if (guidedState.moveToNextZip()) {
 			const next = guidedState.currentZip;
 			if (next) {
 				currentZipFile = next.file;
-				guidedState.setZipStatus(next.file, MangaProcessingStatus.PROCESSING);
+				// Don't set status to PROCESSING here - that should only happen when upload actually starts
+				// (handled in MangaProcessor.startUpload())
 			}
 		} else {
 			// All done
 			currentZipFile = null;
+		}
+	}
+
+	function onAutomationRequestUpload() {
+		// Automation mode wants to start upload
+		if (mangaProcessorRef) {
+			mangaProcessorRef.startUpload();
 		}
 	}
 
@@ -99,13 +127,20 @@
 		/>
 	{:else if guidedState.workflowStep === GuidedWorkflowStep.PROCESSING_MANGA}
 		<div class="flex flex-col gap-4">
-			<MangaProcessingTabs {guidedState} {onZipSelected} class="w-full" />
+			<MangaProcessingTabs
+				{guidedState}
+				{onZipSelected}
+				{onAutomationRequestUpload}
+				{mangaProcessorRef}
+				class="w-full"
+			/>
 
 			{#if currentZipFile}
 				<MangaProcessor
 					{guidedState}
 					zipFile={currentZipFile}
 					{onProcessingComplete}
+					bind:this={mangaProcessorRef}
 					class="w-full"
 				/>
 			{:else}
