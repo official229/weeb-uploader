@@ -663,13 +663,26 @@
 				existingChapters.set(key, aggregateChapter);
 			}
 
+			// Helper function to check if an entry has the "No Group" group
+			const hasNoGroup = (groupIndices: number[]): boolean => {
+				if (!aggregate.groups) return false;
+				for (const groupIndex of groupIndices) {
+					const group = aggregate.groups[groupIndex];
+					if (group && group.name === 'No Group' && !group.id) {
+						return true;
+					}
+				}
+				return false;
+			};
+
 			// Helper function to convert group indices to group IDs
+			// Note: Groups with no ID (like "No Group") are not included in the returned set
 			const getGroupIdsFromIndices = (groupIndices: number[]): Set<string> => {
 				const groupIds = new Set<string>();
 				if (aggregate.groups) {
 					for (const groupIndex of groupIndices) {
 						const group = aggregate.groups[groupIndex];
-						if (group) {
+						if (group && group.id) {
 							groupIds.add(group.id);
 						}
 					}
@@ -677,11 +690,25 @@
 				return groupIds;
 			};
 
-			// Helper function to check if two sets of group IDs are equal
-			const areGroupSetsEqual = (set1: Set<string>, set2: Set<string>): boolean => {
-				if (set1.size !== set2.size) return false;
-				for (const id of set1) {
-					if (!set2.has(id)) return false;
+			// Helper function to check if two group combinations are equal
+			// Handles the special case where "No Group" (no ID) matches empty groups
+			const areGroupSetsEqual = (
+				uploadingGroupIds: Set<string>,
+				entryGroupIds: Set<string>,
+				entryHasNoGroup: boolean
+			): boolean => {
+				// If uploading chapter has no groups, it matches entries with "No Group"
+				if (uploadingGroupIds.size === 0) {
+					return entryHasNoGroup && entryGroupIds.size === 0;
+				}
+				// If entry has "No Group", it only matches uploading chapters with no groups
+				if (entryHasNoGroup) {
+					return false;
+				}
+				// Otherwise, compare group ID sets normally
+				if (uploadingGroupIds.size !== entryGroupIds.size) return false;
+				for (const id of uploadingGroupIds) {
+					if (!entryGroupIds.has(id)) return false;
 				}
 				return true;
 			};
@@ -703,14 +730,13 @@
 					// Get the group IDs for the chapter being uploaded
 					const uploadingGroupIds = new Set(chapter.associatedGroup.groupIds ?? []);
 
-					// If no groups are assigned, skip duplicate check (can't match without groups)
-					if (uploadingGroupIds.size === 0) continue;
-
 					// Check each entry to see if it has the same group combination
+					// This includes checking ungrouped chapters (empty groups array) against entries with "No Group"
 					let matchingEntry: AggregateChapterEntry | null = null;
 					for (const entry of Object.values(existingChapter.entries)) {
 						const entryGroupIds = getGroupIdsFromIndices(entry.groups);
-						if (areGroupSetsEqual(uploadingGroupIds, entryGroupIds)) {
+						const entryHasNoGroup = hasNoGroup(entry.groups);
+						if (areGroupSetsEqual(uploadingGroupIds, entryGroupIds, entryHasNoGroup)) {
 							matchingEntry = entry;
 							break;
 						}
@@ -720,7 +746,15 @@
 					if (matchingEntry) {
 						// Get group names for display
 						const matchingGroupIds = getGroupIdsFromIndices(matchingEntry.groups);
+						const matchingHasNoGroup = hasNoGroup(matchingEntry.groups);
 						const existingGroupNames: string[] = [];
+
+						if (matchingHasNoGroup) {
+							// Entry has "No Group" group
+							existingGroupNames.push('No Group');
+						}
+
+						// Add all groups with IDs
 						for (const groupId of matchingGroupIds) {
 							const group = aggregate.groups?.find((g) => g.id === groupId);
 							if (group) {
