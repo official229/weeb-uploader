@@ -23,9 +23,17 @@
 		index: number;
 		chapter: ChapterState;
 		class?: string;
+		hasWarning?: boolean;
+		warningText?: string | null;
 	}
 
-	let { index, chapter, class: className = '' }: Props = $props();
+	let {
+		index,
+		chapter,
+		class: className = '',
+		hasWarning = false,
+		warningText = null
+	}: Props = $props();
 
 	let isEditingVolumeChapter = $state(false);
 	let volumeChapterCombinations = $state<
@@ -265,7 +273,9 @@
 <div
 	class="bg-surface-hover rounded-md p-3 flex flex-col gap-2 {chapter.isDeleted
 		? 'opacity-50 border-2 border-red-500/50'
-		: ''} {className}"
+		: hasWarning
+			? 'border-2 border-orange-500/50'
+			: ''} {className}"
 >
 	<div class="flex flex-row gap-4 items-center justify-between">
 		<div class="flex flex-row gap-4 items-center">
@@ -350,6 +360,12 @@
 		<span class="text-xs text-muted">Path:</span>
 		<span class="text-xs text-muted font-mono truncate">{chapter.originalFolderPath}</span>
 	</div>
+	{#if hasWarning && warningText}
+		<div class="flex flex-row gap-2 items-start">
+			<span class="text-xs text-orange-600 dark:text-orange-400">⚠️</span>
+			<span class="text-xs text-orange-600 dark:text-orange-400">{warningText}</span>
+		</div>
+	{/if}
 </div>
 
 {#if isEditingVolumeChapter && dropdownPosition}

@@ -91,6 +91,7 @@
 	let partialGroupMatches = $state<
 		Array<{ chapter: ChapterState; matchedGroup: string; allGroups: string[] }>
 	>([]);
+	let chapterWarnings = $state<Array<{ chapterIndex: number; warningText: string }>>([]);
 	let extractionError = $state<string | null>(null);
 
 	const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'cbz', 'zip', 'xml'];
@@ -106,6 +107,7 @@
 		dumpLookupFailedGroups = [];
 		dumpLookupFailedTitles = 0;
 		partialGroupMatches = [];
+		chapterWarnings = [];
 		extractionError = null;
 
 		// Run pipeline
@@ -542,14 +544,20 @@
 			matchedGroup: string;
 			allGroups: string[];
 		}> = [];
+		const newWarnings: Array<{ chapterIndex: number; warningText: string }> = [];
 
-		for (const chapter of targetingState.chapterStates) {
+		for (let i = 0; i < targetingState.chapterStates.length; i++) {
+			const chapter = targetingState.chapterStates[i];
 			// Check if this is a "[no group]" chapter - these should proceed even without assigned groups
 			const isNoGroupChapter = chapter.originalFolderPath?.includes('[no group]') ?? false;
 
 			const assignedGroupIds = chapter.associatedGroup.groupIds ?? [];
 			if (assignedGroupIds.length === 0 && !isNoGroupChapter) {
 				failedCount++;
+				newWarnings.push({
+					chapterIndex: i,
+					warningText: 'Failed to resolve chapter title: No groups assigned'
+				});
 				continue;
 			}
 
@@ -559,6 +567,10 @@
 
 			if (assignedGroupNames.length === 0 && !isNoGroupChapter) {
 				failedCount++;
+				newWarnings.push({
+					chapterIndex: i,
+					warningText: 'Failed to resolve chapter title: No valid groups found'
+				});
 				continue;
 			}
 
@@ -570,6 +582,10 @@
 
 			if (!chapterInfo) {
 				failedCount++;
+				newWarnings.push({
+					chapterIndex: i,
+					warningText: 'Failed to resolve chapter title: Chapter info not found'
+				});
 				continue;
 			}
 
@@ -632,6 +648,11 @@
 							allGroups: allGroupsInChapter
 						});
 
+						newWarnings.push({
+							chapterIndex: i,
+							warningText: `Partial group match: matched ${matchedGroupName}, assigned all groups: ${allGroupsInChapter.join(', ')}`
+						});
+
 						console.log(
 							`Partial group match: matched ${matchedGroupName}, assigned all groups: ${allGroupsInChapter.join(', ')}`
 						);
@@ -639,10 +660,16 @@
 				}
 			} else {
 				failedCount++;
+				newWarnings.push({
+					chapterIndex: i,
+					warningText: 'Failed to resolve chapter title: No matching group or ungrouped title found'
+				});
 			}
 		}
 
 		partialGroupMatches = partialMatches;
+		// Merge new warnings into chapterWarnings
+		chapterWarnings = [...chapterWarnings, ...newWarnings];
 		return failedCount;
 	}
 
@@ -764,6 +791,14 @@
 							}
 						}
 
+						const chapterIndex = targetingState.chapterStates.indexOf(chapter);
+						if (chapterIndex !== -1) {
+							chapterWarnings.push({
+								chapterIndex,
+								warningText: `Duplicate chapter: Already exists with groups: ${existingGroupNames.length > 0 ? existingGroupNames.join(', ') : 'Unknown groups'}`
+							});
+						}
+
 						duplicates.push({
 							chapter,
 							existingGroups:
@@ -801,12 +836,24 @@
 	// Check if there are any issues that should mark this as a warning
 	export function hasIssues(): boolean {
 		return (
+			chapterWarnings.length > 0 ||
 			duplicateChapters.length > 0 ||
 			dumpLookupFailed ||
 			dumpLookupFailedGroups.length > 0 ||
 			dumpLookupFailedTitles > 0 ||
 			partialGroupMatches.length > 0
 		);
+	}
+
+	// Check if a specific chapter has warnings
+	export function chapterHasWarning(chapterIndex: number): boolean {
+		return chapterWarnings.some((w) => w.chapterIndex === chapterIndex);
+	}
+
+	// Get warning text for a specific chapter
+	export function getChapterWarningText(chapterIndex: number): string | null {
+		const warning = chapterWarnings.find((w) => w.chapterIndex === chapterIndex);
+		return warning ? warning.warningText : null;
 	}
 
 	// Expose issue details for automation
@@ -1218,7 +1265,12 @@
 				<h3 class="text-lg font-semibold text-app">Detected Chapters</h3>
 				<div class="flex flex-col gap-2 max-h-150 overflow-y-auto">
 					{#each chapters as chapter, index}
-						<GuidedChapterEditor {index} {chapter} />
+						<GuidedChapterEditor
+							{index}
+							{chapter}
+							hasWarning={chapterHasWarning(index)}
+							warningText={getChapterWarningText(index)}
+						/>
 					{/each}
 				</div>
 			</div>
