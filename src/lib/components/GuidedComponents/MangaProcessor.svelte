@@ -92,18 +92,71 @@
 
 	const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'cbz', 'zip', 'xml'];
 
-	// Load and process the zip file
+	// Main processing pipeline - orchestrates all steps sequentially
 	$effect(() => {
-		if (zipFile) {
-			lastProcessedSeriesId = null;
-			duplicateChapters = [];
-			dumpLookupFailed = false;
-			dumpLookupFailedGroups = [];
-			dumpLookupFailedTitles = 0;
-			extractionError = null;
-			processZipFile();
-		}
+		if (!zipFile) return;
+
+		// Reset state when zip file changes
+		lastProcessedSeriesId = null;
+		duplicateChapters = [];
+		dumpLookupFailed = false;
+		dumpLookupFailedGroups = [];
+		dumpLookupFailedTitles = 0;
+		extractionError = null;
+
+		// Run pipeline
+		runProcessingPipeline();
 	});
+
+	async function runProcessingPipeline() {
+		try {
+			// Step 1: Process zip file (extract and create basic chapter structure)
+			await stepProcessZip();
+
+			// Step 2: Lookup series ID (from filename or user input)
+			await stepLookupSeries();
+
+			// If no series ID, stop here and wait for user input
+			// Set to READY_WARNING so automation will skip it
+			if (!targetingState.seriesId) {
+				processingStep = MangaProcessingStep.READY_WARNING;
+				return;
+			}
+
+			// Step 3: Apply regex (already done in stepProcessZip, but we mark it)
+			processingStep = MangaProcessingStep.APPLYING_REGEX;
+			// Regex is already applied during chapter creation, so we can skip actual work here
+
+			// Step 4: Lookup chapters (load chapter dump)
+			await stepLookupChapters();
+
+			// Step 5: Load groups
+			await stepLoadGroups();
+
+			// Step 6: Apply groups to chapters
+			await stepApplyGroups();
+
+			// Step 7: Apply titles to chapters
+			await stepApplyTitles();
+
+			// Step 8: Check for duplicates
+			await checkForDuplicates();
+
+			// Determine final state
+			if (hasIssues()) {
+				processingStep = MangaProcessingStep.READY_WARNING;
+			} else {
+				processingStep = MangaProcessingStep.READY;
+			}
+		} catch (error) {
+			console.error('Error in processing pipeline:', error);
+			extractionError = error instanceof Error ? error.message : 'Processing failed';
+			guidedState.setZipStatus(zipFile, MangaProcessingStatus.ERROR);
+			// Set to READY_WARNING so automation will skip errored zips
+			processingStep = MangaProcessingStep.READY_WARNING;
+			onProcessingComplete('error');
+		}
+	}
 
 	/**
 	 * Extracts an archive file (.cbz or .zip) and creates virtual File objects with fake paths
@@ -189,26 +242,10 @@
 		return mimeMap[extension] || 'application/octet-stream';
 	}
 
-	async function processZipFile() {
+	// Step 1: Process zip file - extract and create basic chapter structure
+	async function stepProcessZip() {
 		processingStep = MangaProcessingStep.LOADING;
 		targetingState.reset();
-
-		// Try to automatically detect series ID from MD-#### in zip file name
-		const mangaDexId = extractMangaDexIdFromZipName(zipFile.name);
-		if (mangaDexId) {
-			try {
-				await LEGACY_ID_RESOLVER.load();
-				const weebdexId = await LEGACY_ID_RESOLVER.getWeebdexIdFromLegacyId(mangaDexId);
-				if (weebdexId) {
-					targetingState.seriesId = weebdexId;
-					console.log(`Auto-detected series ID from MD-####: ${mangaDexId} -> ${weebdexId}`);
-				} else {
-					console.log(`No WeebDex ID found for MangaDex ID: ${mangaDexId}`);
-				}
-			} catch (error) {
-				console.warn(`Failed to lookup WeebDex ID for MangaDex ID ${mangaDexId}:`, error);
-			}
-		}
 
 		// Extract the zip file
 		processingStep = MangaProcessingStep.EXTRACTING;
@@ -218,10 +255,7 @@
 		} catch (error) {
 			console.error(`Error extracting ${zipFile.name}:`, error);
 			extractionError = error instanceof Error ? error.message : 'Failed to extract archive';
-			guidedState.setZipStatus(zipFile, MangaProcessingStatus.ERROR);
-			processingStep = MangaProcessingStep.READY;
-			onProcessingComplete('error');
-			return;
+			throw error;
 		}
 
 		// Group files by folders
@@ -230,8 +264,7 @@
 		// Find deepest level folders (these are the chapter folders)
 		const deepestFolders = extractDeepestFolders(groupedFolder);
 
-		// Create ChapterState objects from deepest folders
-		processingStep = MangaProcessingStep.EXTRACTING;
+		// Create ChapterState objects from deepest folders (regex is applied here)
 		chapters = await Promise.all(
 			deepestFolders.map(async (folder) => {
 				// Apply regexes to extract volume and chapter numbers
@@ -303,23 +336,116 @@
 		});
 
 		targetingState.chapterStates = chapters;
-		processingStep = MangaProcessingStep.READY;
 	}
 
-	// Assign series ID to all chapters when it's set
-	$effect(() => {
-		if (targetingState.seriesId !== null) {
+	// Step 2: Lookup series ID (from filename or user input)
+	async function stepLookupSeries() {
+		processingStep = MangaProcessingStep.SERIES_LOOKUP;
+
+		// Try to automatically detect series ID from MD-#### in zip file name
+		const mangaDexId = extractMangaDexIdFromZipName(zipFile.name);
+		if (mangaDexId) {
+			try {
+				await LEGACY_ID_RESOLVER.load();
+				const weebdexId = await LEGACY_ID_RESOLVER.getWeebdexIdFromLegacyId(mangaDexId);
+				if (weebdexId) {
+					targetingState.seriesId = weebdexId;
+					console.log(`Auto-detected series ID from MD-####: ${mangaDexId} -> ${weebdexId}`);
+				} else {
+					console.log(`No WeebDex ID found for MangaDex ID: ${mangaDexId}`);
+				}
+			} catch (error) {
+				console.warn(`Failed to lookup WeebDex ID for MangaDex ID ${mangaDexId}:`, error);
+			}
+		}
+
+		// Assign series ID to all chapters
+		if (targetingState.seriesId) {
 			targetingState.chapterStates.forEach((chapter) => {
 				if (!chapter.associatedSeries) {
 					chapter.associatedSeries = new ChapterUploadingSeries();
 				}
-
 				chapter.associatedSeries.seriesId = targetingState.seriesId ?? '';
 			});
 		}
-	});
+	}
 
-	// Auto-apply groups and titles when series is loaded
+	// Step 3: Lookup chapters (load chapter dump)
+	async function stepLookupChapters() {
+		processingStep = MangaProcessingStep.CHAPTER_LOOKUP;
+		if (!targetingState.seriesId) return;
+
+		await CHAPTER_TITLE_EXPORT_RESOLVER.load();
+	}
+
+	// Step 4: Load groups
+	async function stepLoadGroups() {
+		processingStep = MangaProcessingStep.LOADING_GROUPS;
+		if (!targetingState.seriesId) return;
+
+		// Get all unique group names for this series
+		const groupNames = await CHAPTER_TITLE_EXPORT_RESOLVER.getAllGroupNames(
+			targetingState.seriesId
+		);
+
+		if (groupNames.length === 0) {
+			console.warn('No groups found in chapter dump');
+			dumpLookupFailed = true;
+			return;
+		}
+
+		// Look up each group and add to availableScanGroups
+		const availableGroups: ScanGroup[] = [];
+		const failedGroups: string[] = [];
+		for (const groupName of groupNames) {
+			try {
+				const response = await searchGroups(groupName);
+				if (response.data) {
+					const exactMatch = response.data.find((g) => g.name === groupName);
+					if (exactMatch) {
+						const newGroup = new ScanGroup();
+						newGroup.groupId = exactMatch.id;
+						newGroup.groupName = exactMatch.name;
+						availableGroups.push(newGroup);
+					} else {
+						failedGroups.push(groupName);
+					}
+				} else {
+					failedGroups.push(groupName);
+				}
+			} catch (err) {
+				console.warn(`Failed to lookup group "${groupName}":`, err);
+				failedGroups.push(groupName);
+			}
+		}
+
+		dumpLookupFailedGroups = failedGroups;
+		if (failedGroups.length > 0) {
+			dumpLookupFailed = true;
+		}
+
+		targetingState.availableScanGroups = availableGroups;
+	}
+
+	// Step 5: Apply groups to chapters
+	async function stepApplyGroups() {
+		processingStep = MangaProcessingStep.APPLYING_GROUPS;
+		await applyGroupsToChapters();
+	}
+
+	// Step 6: Apply titles to chapters
+	async function stepApplyTitles() {
+		processingStep = MangaProcessingStep.APPLYING_TITLES;
+		if (!targetingState.seriesId) return;
+
+		const failedTitleCount = await applyTitlesToChapters();
+		dumpLookupFailedTitles = failedTitleCount;
+		if (failedTitleCount > 0) {
+			dumpLookupFailed = true;
+		}
+	}
+
+	// Watch for seriesId changes and restart pipeline if needed
 	$effect(() => {
 		if (
 			targetingState.seriesId &&
@@ -327,85 +453,35 @@
 				processingStep === MangaProcessingStep.READY_WARNING) &&
 			targetingState.seriesId !== lastProcessedSeriesId
 		) {
+			// Series ID was set after we reached READY/READY_WARNING, restart pipeline from series lookup
 			lastProcessedSeriesId = targetingState.seriesId;
-			processingStep = MangaProcessingStep.SERIES_LOOKUP;
-			loadChapterDumpAndApply();
+			runProcessingPipelineFromSeries();
 		}
 	});
 
-	async function loadChapterDumpAndApply() {
-		if (!targetingState.seriesId) return;
-
+	async function runProcessingPipelineFromSeries() {
 		try {
-			// Load chapter dump
-			await CHAPTER_TITLE_EXPORT_RESOLVER.load();
+			// Start from series lookup (skip zip processing)
+			await stepLookupSeries();
 
-			// Get all unique group names for this series
-			const groupNames = await CHAPTER_TITLE_EXPORT_RESOLVER.getAllGroupNames(
-				targetingState.seriesId
-			);
+			if (!targetingState.seriesId) return;
 
-			if (groupNames.length === 0) {
-				console.warn('No groups found in chapter dump');
-				dumpLookupFailed = true;
-				processingStep = MangaProcessingStep.READY_WARNING;
-				return;
-			}
+			processingStep = MangaProcessingStep.APPLYING_REGEX;
+			// Regex already applied, continue
 
-			// Look up each group and add to availableScanGroups
-			const availableGroups: ScanGroup[] = [];
-			const failedGroups: string[] = [];
-			for (const groupName of groupNames) {
-				try {
-					const response = await searchGroups(groupName);
-					if (response.data) {
-						const exactMatch = response.data.find((g) => g.name === groupName);
-						if (exactMatch) {
-							const newGroup = new ScanGroup();
-							newGroup.groupId = exactMatch.id;
-							newGroup.groupName = exactMatch.name;
-							availableGroups.push(newGroup);
-						} else {
-							failedGroups.push(groupName);
-						}
-					} else {
-						failedGroups.push(groupName);
-					}
-				} catch (err) {
-					console.warn(`Failed to lookup group "${groupName}":`, err);
-					failedGroups.push(groupName);
-				}
-			}
-
-			dumpLookupFailedGroups = failedGroups;
-			if (failedGroups.length > 0) {
-				dumpLookupFailed = true;
-			}
-
-			targetingState.availableScanGroups = availableGroups;
-
-			// Apply groups to chapters
-			await applyGroupsToChapters();
-
-			// Apply titles to chapters
-			const failedTitleCount = await applyTitlesToChapters();
-			dumpLookupFailedTitles = failedTitleCount;
-			if (failedTitleCount > 0) {
-				dumpLookupFailed = true;
-			}
-
-			// Check for duplicate chapters
+			await stepLookupChapters();
+			await stepLoadGroups();
+			await stepApplyGroups();
+			await stepApplyTitles();
 			await checkForDuplicates();
 
-			// Determine final state based on whether there are issues
 			if (hasIssues()) {
 				processingStep = MangaProcessingStep.READY_WARNING;
 			} else {
 				processingStep = MangaProcessingStep.READY;
 			}
-		} catch (err) {
-			console.error('Error loading chapter dump:', err);
-			dumpLookupFailed = true;
+		} catch (error) {
+			console.error('Error in processing pipeline:', error);
 			processingStep = MangaProcessingStep.READY_WARNING;
 		}
 	}
@@ -443,8 +519,11 @@
 
 		let failedCount = 0;
 		for (const chapter of targetingState.chapterStates) {
+			// Check if this is a "[no group]" chapter - these should proceed even without assigned groups
+			const isNoGroupChapter = chapter.originalFolderPath?.includes('[no group]') ?? false;
+
 			const assignedGroupIds = chapter.associatedGroup.groupIds ?? [];
-			if (assignedGroupIds.length === 0) {
+			if (assignedGroupIds.length === 0 && !isNoGroupChapter) {
 				failedCount++;
 				continue;
 			}
@@ -453,7 +532,7 @@
 				.map((id) => groupIdToNameMap.get(id))
 				.filter((name): name is string => name !== undefined);
 
-			if (assignedGroupNames.length === 0) {
+			if (assignedGroupNames.length === 0 && !isNoGroupChapter) {
 				failedCount++;
 				continue;
 			}
@@ -469,12 +548,25 @@
 				continue;
 			}
 
-			const hasMatchingGroup = assignedGroupNames.some((name) =>
-				chapterInfo.groupNames.includes(name)
-			);
+			// Try to find a matching group title first
+			let title: string | null = null;
+			for (const groupName of assignedGroupNames) {
+				if (groupName in chapterInfo.groupTitles) {
+					title = chapterInfo.groupTitles[groupName];
+					break;
+				}
+			}
 
-			if (hasMatchingGroup) {
-				chapter.chapterTitle = chapterInfo.title;
+			// Only use ungrouped title if the chapter path contains "[no group]"
+			// This indicates the chapter explicitly has no group assigned
+			if (title === null && isNoGroupChapter) {
+				if (chapterInfo.ungroupedTitles.length > 0) {
+					title = chapterInfo.ungroupedTitles[0];
+				}
+			}
+
+			if (title !== null) {
+				chapter.chapterTitle = title;
 			} else {
 				failedCount++;
 			}
@@ -642,10 +734,9 @@
 		const lastSeriesId = lastProcessedSeriesId;
 
 		// Check if we should trigger automation check
-		// Either READY (no issues) or READY_WARNING (has issues - automation will skip)
+		// Only check when we're in READY or READY_WARNING state
 		const shouldCheck =
-			(step === MangaProcessingStep.READY && (lastSeriesId === seriesId || !seriesId)) ||
-			step === MangaProcessingStep.READY_WARNING;
+			step === MangaProcessingStep.READY || step === MangaProcessingStep.READY_WARNING;
 
 		if (!shouldCheck) return;
 
@@ -772,8 +863,7 @@
 
 	const canStartUpload = $derived(
 		processingStep === MangaProcessingStep.READY ||
-			processingStep === MangaProcessingStep.READY_WARNING ||
-			processingStep === MangaProcessingStep.SERIES_LOOKUP
+			processingStep === MangaProcessingStep.READY_WARNING
 	);
 	const nonDeletedChapters = $derived(chapters.filter((ch) => !ch.isDeleted));
 
@@ -805,19 +895,31 @@
 <div class="flex flex-col gap-4 {className}">
 	<h2 class="text-2xl font-bold text-app">Processing: {zipFile.name}</h2>
 
-	{#if processingStep === MangaProcessingStep.LOADING || processingStep === MangaProcessingStep.EXTRACTING}
+	{#if processingStep === MangaProcessingStep.LOADING || processingStep === MangaProcessingStep.EXTRACTING || processingStep === MangaProcessingStep.SERIES_LOOKUP || processingStep === MangaProcessingStep.APPLYING_REGEX || processingStep === MangaProcessingStep.CHAPTER_LOOKUP || processingStep === MangaProcessingStep.LOADING_GROUPS || processingStep === MangaProcessingStep.APPLYING_GROUPS || processingStep === MangaProcessingStep.APPLYING_TITLES}
 		<div class="flex flex-col gap-2 items-center">
 			<div class="animate-spin rounded-full h-8 w-8 outline-dotted outline-5 border-surface"></div>
 			<p class="text-sm text-muted">
 				{processingStep === MangaProcessingStep.LOADING
 					? 'Loading manga folder...'
-					: 'Extracting zip files...'}
+					: processingStep === MangaProcessingStep.EXTRACTING
+						? 'Extracting zip files...'
+						: processingStep === MangaProcessingStep.SERIES_LOOKUP
+							? 'Looking up series ID...'
+							: processingStep === MangaProcessingStep.APPLYING_REGEX
+								? 'Applying regex patterns...'
+								: processingStep === MangaProcessingStep.CHAPTER_LOOKUP
+									? 'Loading chapter dump...'
+									: processingStep === MangaProcessingStep.LOADING_GROUPS
+										? 'Loading groups...'
+										: processingStep === MangaProcessingStep.APPLYING_GROUPS
+											? 'Applying groups to chapters...'
+											: 'Applying titles to chapters...'}
 			</p>
 			{#if currentlyProcessingZip}
 				<p class="text-xs text-muted">Processing: {currentlyProcessingZip}</p>
 			{/if}
 		</div>
-	{:else if processingStep === MangaProcessingStep.READY || processingStep === MangaProcessingStep.READY_WARNING || processingStep === MangaProcessingStep.SERIES_LOOKUP}
+	{:else if processingStep === MangaProcessingStep.READY || processingStep === MangaProcessingStep.READY_WARNING}
 		<div class="flex flex-col gap-4">
 			<div class="bg-surface rounded-md p-4">
 				<p class="text-sm text-app">
@@ -832,18 +934,20 @@
 				<TargetingSeriesSearch />
 			</div>
 
-			{#if processingStep === MangaProcessingStep.SERIES_LOOKUP}
-				<div class="flex flex-col gap-2">
-					<p class="text-sm text-muted">Loading chapter dump and applying groups/titles...</p>
-				</div>
-			{/if}
 			{#if processingStep === MangaProcessingStep.READY_WARNING}
 				<div
 					class="bg-yellow-500/20 dark:bg-yellow-500/10 border-1 border-yellow-500 rounded-md p-3"
 				>
-					<p class="text-sm text-yellow-600 dark:text-yellow-400 font-semibold mb-2">
-						⚠️ Ready with warnings - Automation will skip this zip. You can still upload manually.
-					</p>
+					{#if !targetingState.seriesId}
+						<p class="text-sm text-yellow-600 dark:text-yellow-400 font-semibold mb-2">
+							⚠️ Waiting for series ID - Automation will skip this zip. Please select a series
+							above.
+						</p>
+					{:else}
+						<p class="text-sm text-yellow-600 dark:text-yellow-400 font-semibold mb-2">
+							⚠️ Ready with warnings - Automation will skip this zip. You can still upload manually.
+						</p>
+					{/if}
 					<div class="flex flex-col gap-1 text-xs text-yellow-700 dark:text-yellow-300">
 						{#if duplicateChapters.length > 0}
 							<p>

@@ -7,7 +7,10 @@
 	} from '../TargetingComponents/TargetingState.svelte';
 	import TargetingEditableField from '../TargetingComponents/TargetingEditableField.svelte';
 	import TargetingEditableGroup from '../TargetingComponents/TargetingEditableGroup.svelte';
-	import { CHAPTER_TITLE_EXPORT_RESOLVER } from '$lib/core/ChapterTitleExportResolver.svelte';
+	import {
+		CHAPTER_TITLE_EXPORT_RESOLVER,
+		type ResolvedChapterInfo
+	} from '$lib/core/ChapterTitleExportResolver.svelte';
 
 	const targetingState = getContext<TargetingState>(targetingStateContext);
 	if (!targetingState) {
@@ -26,7 +29,7 @@
 
 	let isEditingVolumeChapter = $state(false);
 	let volumeChapterCombinations = $state<
-		Array<{ volume: string; chapter: string; title: string | null }>
+		Array<{ volume: string; chapter: string; info: ResolvedChapterInfo }>
 	>([]);
 	let isLoadingCombinations = $state(false);
 	let buttonRef = $state<HTMLButtonElement | null>(null);
@@ -75,10 +78,22 @@
 		savedButtonRect = null;
 	}
 
+	function getDisplayTitle(info: ResolvedChapterInfo): string | null {
+		// Prioritize ungrouped titles, then fall back to first group title if available
+		if (info.ungroupedTitles.length > 0) {
+			return info.ungroupedTitles[0];
+		}
+		const groupNames = Object.keys(info.groupTitles);
+		if (groupNames.length > 0) {
+			return info.groupTitles[groupNames[0]];
+		}
+		return null;
+	}
+
 	function selectVolumeChapter(combination: {
 		volume: string;
 		chapter: string;
-		title: string | null;
+		info: ResolvedChapterInfo;
 	}) {
 		// Mark fields as manually edited
 		if (!chapter.manuallyEditedFields.has('volume')) {
@@ -103,7 +118,7 @@
 		// Update chapter values
 		chapter.chapterVolume = combination.volume || null;
 		chapter.chapterNumber = combination.chapter || null;
-		chapter.chapterTitle = combination.title || null;
+		chapter.chapterTitle = getDisplayTitle(combination.info);
 
 		stopEditingVolumeChapter();
 	}
@@ -111,12 +126,13 @@
 	function formatCombinationDisplay(combination: {
 		volume: string;
 		chapter: string;
-		title: string | null;
+		info: ResolvedChapterInfo;
 	}): string {
 		const vol = combination.volume || 'N/A';
 		const ch = combination.chapter || 'N/A';
-		const title = combination.title ? ` - ${combination.title}` : '';
-		return `Vol ${vol}, Ch ${ch}${title}`;
+		const title = getDisplayTitle(combination.info);
+		const titleStr = title ? ` - ${title}` : '';
+		return `Vol ${vol}, Ch ${ch}${titleStr}`;
 	}
 
 	function updateDropdownPosition() {

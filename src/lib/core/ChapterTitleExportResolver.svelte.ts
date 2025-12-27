@@ -6,8 +6,13 @@ export interface ChapterInfo {
 	volume: string;
 	chapter: string;
 	title: string;
-	groupName: string;
+	groupName: string | null;
 	altNames: Array<{ [lang: string]: string }>;
+}
+
+export interface ResolvedChapterInfo {
+	groupTitles: Record<string, string>;
+	ungroupedTitles: string[];
 }
 
 export class ChapterTitleExportResolver {
@@ -78,8 +83,8 @@ export class ChapterTitleExportResolver {
 			chapter: string;
 			title: string;
 			weebdex_id: string;
-			name: string;
-			alt_names: string;
+			name: string | null;
+			alt_names: string | null;
 		}>;
 
 		const dataMap = new SvelteMap<string, SvelteMap<string, ChapterInfo[]>>();
@@ -92,7 +97,7 @@ export class ChapterTitleExportResolver {
 
 			// Parse alt_names JSON string
 			let altNames: Array<{ [lang: string]: string }> = [];
-			if (record.alt_names && record.alt_names.trim() !== '' && record.alt_names !== '[]') {
+			if (record.alt_names != null && record.alt_names.trim() !== '' && record.alt_names !== '[]') {
 				try {
 					// The JSON is double-escaped, so we need to parse it
 					const parsed = JSON.parse(record.alt_names);
@@ -109,7 +114,7 @@ export class ChapterTitleExportResolver {
 				volume,
 				chapter,
 				title: record.title || '',
-				groupName: record.name || '',
+				groupName: record.name != null && record.name.trim() !== '' ? record.name : null,
 				altNames
 			};
 
@@ -132,7 +137,7 @@ export class ChapterTitleExportResolver {
 		seriesId: string,
 		volume: string | null,
 		chapter: string | null
-	): Promise<{ title: string | null; groupNames: string[] } | null> {
+	): Promise<ResolvedChapterInfo | null> {
 		await this.ensureLoaded();
 
 		if (this.data === null) {
@@ -153,18 +158,31 @@ export class ChapterTitleExportResolver {
 			return null;
 		}
 
-		// Get title from first entry (all should have same title for same volume/chapter)
-		const title = chapterInfos[0].title || null;
-		// Get all unique group names
-		const groupNamesSet = new SvelteSet<string>();
+		// Build group to title mapping
+		const groupTitles: Record<string, string> = {};
+		const ungroupedTitlesSet = new SvelteSet<string>();
+
 		for (const info of chapterInfos) {
-			if (info.groupName) {
-				groupNamesSet.add(info.groupName);
+			if (info.groupName != null && info.groupName.trim() !== '') {
+				// If multiple entries have the same group, the last one wins
+				// (or we could keep the first, but last seems reasonable for updates)
+				if (info.title && info.title.trim() !== '') {
+					groupTitles[info.groupName] = info.title;
+				}
+			} else {
+				// Collect titles from ungrouped entries
+				if (info.title && info.title.trim() !== '') {
+					ungroupedTitlesSet.add(info.title);
+				}
 			}
 		}
-		const groupNames = Array.from(groupNamesSet);
 
-		return { title, groupNames };
+		const ungroupedTitles = Array.from(ungroupedTitlesSet);
+
+		return {
+			groupTitles,
+			ungroupedTitles
+		};
 	}
 
 	async getAllGroupNames(seriesId: string): Promise<string[]> {
@@ -182,7 +200,7 @@ export class ChapterTitleExportResolver {
 		const groupNamesSet = new SvelteSet<string>();
 		for (const chapterInfos of seriesMap.values()) {
 			for (const info of chapterInfos) {
-				if (info.groupName) {
+				if (info.groupName != null && info.groupName.trim() !== '') {
 					groupNamesSet.add(info.groupName);
 				}
 			}
@@ -193,7 +211,7 @@ export class ChapterTitleExportResolver {
 
 	async getUniqueVolumeChapterCombinations(
 		seriesId: string
-	): Promise<Array<{ volume: string; chapter: string; title: string | null }>> {
+	): Promise<Array<{ volume: string; chapter: string; info: ResolvedChapterInfo }>> {
 		await this.ensureLoaded();
 
 		if (this.data === null) {
@@ -205,22 +223,45 @@ export class ChapterTitleExportResolver {
 			return [];
 		}
 
-		// Use a map to track unique combinations and their titles
+		// Use a map to track unique combinations and their resolved info
 		const combinationsMap = new SvelteMap<
 			string,
-			{ volume: string; chapter: string; title: string | null }
+			{ volume: string; chapter: string; info: ResolvedChapterInfo }
 		>();
 
 		for (const [key, chapterInfos] of seriesMap.entries()) {
 			if (chapterInfos.length === 0) continue;
 
 			const [volume, chapter] = key.split('|');
-			// Get title from first entry (all should have same title for same volume/chapter)
-			const title = chapterInfos[0].title || null;
+
+			// Build group to title mapping
+			const groupTitles: Record<string, string> = {};
+			const ungroupedTitlesSet = new SvelteSet<string>();
+
+			for (const info of chapterInfos) {
+				if (info.groupName != null && info.groupName.trim() !== '') {
+					// If multiple entries have the same group, the last one wins
+					if (info.title && info.title.trim() !== '') {
+						groupTitles[info.groupName] = info.title;
+					}
+				} else {
+					// Collect titles from ungrouped entries
+					if (info.title && info.title.trim() !== '') {
+						ungroupedTitlesSet.add(info.title);
+					}
+				}
+			}
+
+			const ungroupedTitles = Array.from(ungroupedTitlesSet);
+
+			const resolvedInfo: ResolvedChapterInfo = {
+				groupTitles,
+				ungroupedTitles
+			};
 
 			// Use the key as the unique identifier
 			if (!combinationsMap.has(key)) {
-				combinationsMap.set(key, { volume, chapter, title });
+				combinationsMap.set(key, { volume, chapter, info: resolvedInfo });
 			}
 		}
 

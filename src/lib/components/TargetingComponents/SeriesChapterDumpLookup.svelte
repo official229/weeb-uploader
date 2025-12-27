@@ -230,9 +230,12 @@
 
 			// Iterate through all chapters
 			for (const chapter of targetingState.chapterStates) {
+				// Check if this is a "[no group]" chapter - these should proceed even without assigned groups
+				const isNoGroupChapter = chapter.originalFolderPath?.includes('[no group]') ?? false;
+
 				// Get the chapter's assigned group IDs
 				const assignedGroupIds = chapter.associatedGroup.groupIds ?? [];
-				if (assignedGroupIds.length === 0) {
+				if (assignedGroupIds.length === 0 && !isNoGroupChapter) {
 					failed.push({
 						volume: chapter.chapterVolume,
 						chapter: chapter.chapterNumber,
@@ -247,7 +250,7 @@
 					.map((id) => groupIdToNameMap.get(id))
 					.filter((name): name is string => name !== undefined);
 
-				if (assignedGroupNames.length === 0) {
+				if (assignedGroupNames.length === 0 && !isNoGroupChapter) {
 					failed.push({
 						volume: chapter.chapterVolume,
 						chapter: chapter.chapterNumber,
@@ -274,13 +277,28 @@
 					continue;
 				}
 
-				// Check if any of the chapter's assigned group names match the CSV group names
-				const hasMatchingGroup = assignedGroupNames.some((name) =>
-					chapterInfo.groupNames.includes(name)
-				);
+				// Try to find a matching group title first
+				let title: string | null = null;
+				let foundMatch = false;
+				for (const groupName of assignedGroupNames) {
+					if (groupName in chapterInfo.groupTitles) {
+						title = chapterInfo.groupTitles[groupName];
+						foundMatch = true;
+						break;
+					}
+				}
 
-				if (hasMatchingGroup) {
-					chapter.chapterTitle = chapterInfo.title;
+				// Only use ungrouped title if the chapter path contains "[no group]"
+				// This indicates the chapter explicitly has no group assigned
+				if (!foundMatch && isNoGroupChapter) {
+					if (chapterInfo.ungroupedTitles.length > 0) {
+						title = chapterInfo.ungroupedTitles[0];
+						foundMatch = true;
+					}
+				}
+
+				if (foundMatch) {
+					chapter.chapterTitle = title;
 					assignedCount++;
 				} else {
 					failed.push({
