@@ -531,12 +531,15 @@
 		}
 	}
 
-	function handleUploadDone() {
+	function handleUploadDone(success: boolean) {
 		if (hasCalledUploadDone) return; // Prevent multiple calls
 		hasCalledUploadDone = true;
 		isUploading = false;
 		processingStep = 'completed';
-		guidedState.setZipStatus(zipFile, MangaProcessingStatus.COMPLETED);
+		guidedState.setZipStatus(
+			zipFile,
+			success ? MangaProcessingStatus.COMPLETED : MangaProcessingStatus.ERROR
+		);
 		onProcessingComplete();
 	}
 
@@ -574,9 +577,17 @@
 			const hasNonDeletedChapters = chapters.some((chapter) => !chapter.isDeleted);
 
 			if (allCompleted && hasNonDeletedChapters && !isUploading) {
-				// All chapters are completed, mark zip as completed
-				guidedState.setZipStatus(zipFile, MangaProcessingStatus.COMPLETED);
-				handleUploadDone();
+				// Check if any non-deleted chapters failed
+				const hasFailedChapters = chapters.some(
+					(chapter) => !chapter.isDeleted && chapter.status === ChapterStatus.FAILED
+				);
+				const success = !hasFailedChapters;
+				// All chapters are completed, mark zip as completed or error
+				guidedState.setZipStatus(
+					zipFile,
+					success ? MangaProcessingStatus.COMPLETED : MangaProcessingStatus.ERROR
+				);
+				handleUploadDone(success);
 			}
 		}
 	});

@@ -7,7 +7,7 @@
 	import UploaderChapterProgression from './UploaderChapterProgression.svelte';
 	import { ChapterPageStatus, ChapterStatus } from '$lib/core/UploadingState.svelte';
 	import { ApiAuthContext, apiAuthContext } from '$lib/core/GlobalState.svelte';
-	import { ChapterUploader } from '$lib/core/ChapterUploader.svelte';
+	import { ChapterUploader, UploaderStatus } from '$lib/core/ChapterUploader.svelte';
 
 	const authContext = getContext<ApiAuthContext>(apiAuthContext);
 	if (!authContext) {
@@ -26,7 +26,7 @@
 	let chapters = $derived(targetingState.chapterStates.filter((chapter) => !chapter.isDeleted));
 
 	interface Props {
-		onDone: () => void;
+		onDone: (success: boolean) => void;
 		busy: boolean;
 	}
 
@@ -118,10 +118,14 @@
 			.uploadAll()
 			.then(() => {
 				isUploading = false;
+				// Check if upload was successful based on uploader status
+				const success = chapterUploader?.status === UploaderStatus.COMPLETED;
+				onDone(success);
 			})
 			.catch((error) => {
 				console.error('Upload error:', error);
 				isUploading = false;
+				onDone(false);
 			})
 			.finally(() => {
 				working = false;

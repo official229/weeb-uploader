@@ -1,4 +1,5 @@
 import { createContext } from 'svelte';
+import { SvelteMap } from 'svelte/reactivity';
 
 export enum GuidedWorkflowStep {
 	SELECTING_ROOT_FOLDER = 'SELECTING_ROOT_FOLDER',
@@ -37,8 +38,7 @@ export class GuidedState {
 	public get unprocessedZips(): ZipFileInfo[] {
 		return this.zipFiles.filter(
 			(zip) =>
-				this.selectedZipFiles.includes(zip.file) &&
-				zip.status === MangaProcessingStatus.PENDING
+				this.selectedZipFiles.includes(zip.file) && zip.status === MangaProcessingStatus.PENDING
 		);
 	}
 
@@ -72,8 +72,8 @@ export class GuidedState {
 	}
 
 	// Helper to get zip files grouped by manga folder
-	public get zipFilesByMangaFolder(): Map<string, ZipFileInfo[]> {
-		const map = new Map<string, ZipFileInfo[]>();
+	public get zipFilesByMangaFolder(): SvelteMap<string, ZipFileInfo[]> {
+		const map = new SvelteMap<string, ZipFileInfo[]>();
 		for (const zipInfo of this.zipFiles) {
 			if (!map.has(zipInfo.mangaFolderName)) {
 				map.set(zipInfo.mangaFolderName, []);
@@ -93,4 +93,3 @@ export class GuidedState {
 }
 
 export const guidedStateContext = createContext<GuidedState>();
-
